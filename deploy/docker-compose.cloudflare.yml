@@ -1,0 +1,24 @@
+services:
+  compass:
+    build:
+      context: ..
+    restart: unless-stopped
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      COMPASS_DATABASE_PATH: /data/compass.db
+    volumes:
+      - compass-data:/data
+    expose:
+      - "8000"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - compass
+
+volumes:
+  compass-data:

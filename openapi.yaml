@@ -1,0 +1,487 @@
+openapi: 3.1.0
+info:
+  title: Compass Gateway
+  version: 0.1.0
+  description: Central GPT Actions API for daily planning and personal orchestration.
+servers:
+  - url: https://your-public-domain.example
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    WriteResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        status:
+          type: string
+        resource_id:
+          type: string
+        already_existed:
+          type: boolean
+        warnings:
+          type: array
+          items:
+            type: string
+        downstream:
+          type: object
+          additionalProperties: true
+security:
+  - bearerAuth: []
+paths:
+  /api/health:
+    get:
+      operationId: health
+      summary: Check whether Compass is running.
+      security: []
+      responses:
+        "200":
+          description: Service status.
+  /api/context/morning:
+    post:
+      operationId: getMorningContext
+      summary: Load relevant context for the daily interview.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, date]
+              properties:
+                user_id:
+                  type: string
+                date:
+                  type: string
+                  format: date
+                timezone:
+                  type: string
+                  default: Asia/Jerusalem
+                include:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Morning context.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /api/conversation/event:
+    post:
+      operationId: recordConversationEvent
+      summary: Save an important event from the current conversation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, event_type, content]
+              properties:
+                idempotency_key:
+                  type: string
+                user_id:
+                  type: string
+                conversation_id:
+                  type: string
+                event_type:
+                  type: string
+                content:
+                  type: string
+                importance:
+                  type: string
+                  enum: [low, medium, high, critical]
+                  default: medium
+                structured_payload:
+                  type: object
+                  additionalProperties: true
+      responses:
+        "200":
+          description: Event saved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WriteResult"
+  /api/conversation/finalize:
+    post:
+      operationId: finalizeConversation
+      summary: Save the final summary and close the conversation record.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, summary]
+              properties:
+                idempotency_key:
+                  type: string
+                user_id:
+                  type: string
+                conversation_id:
+                  type: string
+                summary:
+                  type: string
+                decisions:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                tasks:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                open_questions:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Conversation finalized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WriteResult"
+  /api/daily-plan:
+    post:
+      operationId: saveDailyPlan
+      summary: Save an approved daily plan and submit it to the rules backbone.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, date]
+              properties:
+                idempotency_key:
+                  type: string
+                user_id:
+                  type: string
+                date:
+                  type: string
+                  format: date
+                plan_id:
+                  type: string
+                status:
+                  type: string
+                  default: approved
+                energy_level:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                available_minutes:
+                  type: integer
+                  minimum: 0
+                outcomes:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                scheduled_tasks:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                deferred_items:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                risks:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: Daily plan saved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WriteResult"
+  /api/tasks/upsert:
+    post:
+      operationId: upsertTask
+      summary: Create or update a task.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, title]
+              properties:
+                idempotency_key:
+                  type: string
+                user_id:
+                  type: string
+                task_id:
+                  type: string
+                title:
+                  type: string
+                description:
+                  type: string
+                status:
+                  type: string
+                  enum: [mentioned, proposed, approved, active, open, done, cancelled]
+                  default: proposed
+                due_date:
+                  type: string
+                  format: date
+                priority:
+                  type: string
+                source:
+                  type: string
+                  default: gpt
+                metadata:
+                  type: object
+                  additionalProperties: true
+      responses:
+        "200":
+          description: Task created or updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WriteResult"
+  /api/rules/events:
+    post:
+      operationId: submitEventToRulesEngine
+      summary: Submit a structured event to the existing rules engine backbone.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, event_type]
+              properties:
+                user_id:
+                  type: string
+                event_type:
+                  type: string
+                actor:
+                  type: string
+                context:
+                  type: object
+                  additionalProperties: true
+                signals:
+                  type: array
+                  items:
+                    type: string
+                dry_run:
+                  type: boolean
+                  default: true
+      responses:
+        "200":
+          description: Rule evaluation result.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /api/agents/invoke:
+    post:
+      operationId: invokeAgent
+      summary: Invoke a known specialist agent through Compass.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [agent_id, task]
+              properties:
+                agent_id:
+                  type: string
+                  enum: [rules_engine, self_manage, assessment, mail_manager, economic_spending, task_commander, administrative]
+                task:
+                  type: string
+                user_id:
+                  type: string
+                  default: moshe
+                context:
+                  type: object
+                  additionalProperties: true
+                expected_output:
+                  type: string
+                require_approval:
+                  type: boolean
+                  default: false
+                risk_level:
+                  type: string
+                  default: medium
+      responses:
+        "200":
+          description: Agent invocation result.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /api/approvals:
+    post:
+      operationId: createApprovalRequest
+      summary: Create an approval request for a proposed action.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, title, action_type]
+              properties:
+                idempotency_key:
+                  type: string
+                user_id:
+                  type: string
+                title:
+                  type: string
+                description:
+                  type: string
+                requested_by:
+                  type: string
+                  default: gpt
+                action_type:
+                  type: string
+                risk_level:
+                  type: string
+                  enum: [low, medium, high, critical]
+                  default: medium
+                proposed_action:
+                  type: object
+                  additionalProperties: true
+                rule_result:
+                  type: object
+                  additionalProperties: true
+      responses:
+        "200":
+          description: Approval request created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WriteResult"
+    get:
+      operationId: listApprovalRequests
+      summary: List approval requests by user and status.
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            default: pending
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Approval requests.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+  /api/approvals/{approval_id}:
+    get:
+      operationId: getApprovalRequest
+      summary: Get one approval request.
+      parameters:
+        - name: approval_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Approval request.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /api/approvals/{approval_id}/approve:
+    post:
+      operationId: approveRequest
+      summary: Mark an approval request as approved without executing it.
+      parameters:
+        - name: approval_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+                decision_by:
+                  type: string
+                  default: user
+                decision_notes:
+                  type: string
+      responses:
+        "200":
+          description: Approved request.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /api/approvals/{approval_id}/reject:
+    post:
+      operationId: rejectRequest
+      summary: Mark an approval request as rejected.
+      parameters:
+        - name: approval_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+                decision_by:
+                  type: string
+                  default: user
+                decision_notes:
+                  type: string
+      responses:
+        "200":
+          description: Rejected request.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
