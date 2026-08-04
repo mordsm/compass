@@ -18,3 +18,6 @@ class EconomicSpendingAdapter:
 
     def record_event(self, payload: dict[str, Any]) -> dict[str, Any]:
         return post_json(get_settings().economic_spending_base_url, "/api/spending/event", payload)
+
+    def invoke_agent(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return post_json(get_settings().economic_spending_base_url, "/api/agent/invoke", payload)

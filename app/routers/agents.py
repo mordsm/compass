@@ -56,11 +56,23 @@ def invoke_agent(request: InvokeAgentRequest) -> dict:
             },
         }
     if request.agent_id == "assessment":
+        assessment = AssessmentAdapter()
+        payload = {
+            "task": request.task,
+            "user_id": request.user_id,
+            "context": request.context,
+            "expected_output": request.expected_output,
+            "risk_level": request.risk_level,
+        }
+        result = assessment.invoke_agent(payload)
+        if result.get("connected"):
+            return result
         return {
             "connected": True,
+            "warning": result.get("warning", "assessment agent endpoint unavailable; using raw assessment context"),
             "result": {
-                "recent": AssessmentAdapter().list_recent(),
-                "objective_results": AssessmentAdapter().list_objective_results(),
+                "recent": assessment.list_recent(),
+                "objective_results": assessment.list_objective_results(),
             },
         }
     if request.agent_id == "mail_manager":
@@ -76,6 +88,17 @@ def invoke_agent(request: InvokeAgentRequest) -> dict:
     if request.agent_id == "economic_spending":
         economic = EconomicSpendingAdapter()
         payload = {**request.context, "user_id": request.user_id, "task": request.task}
+        result = economic.invoke_agent(
+            {
+                "task": request.task,
+                "user_id": request.user_id,
+                "context": request.context,
+                "expected_output": request.expected_output,
+                "risk_level": request.risk_level,
+            }
+        )
+        if result.get("connected"):
+            return result
         if request.task == "record_event":
             return economic.record_event(payload)
         return economic.summary(user_id=request.user_id)
