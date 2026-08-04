@@ -89,19 +89,18 @@ container restarts.
 
 ## GitHub Deploy + Cloudflare Tunnel
 
-Use this setup when you want GitHub to deploy the code and Cloudflare to provide
-the public HTTPS URL.
+Use this setup when you want GitHub to trigger deployments on your local PC and
+Cloudflare to provide the public HTTPS URL.
 
 Architecture:
 
 ```text
 Custom GPT Action -> https://compass.example.com -> Cloudflare Tunnel -> Compass container
-GitHub push -> GitHub Actions -> SSH to host -> docker compose up -d --build
+GitHub push -> self-hosted GitHub runner on local PC -> docker compose up -d --build
 ```
 
-You still need one always-on host for Compass and `cloudflared`. This can be a
-small VPS, a home server, or any machine that stays awake. GitHub Actions is only
-the deployment runner, not the web server.
+Your PC is the host. It must stay awake and connected for the GPT Action to work.
+GitHub Actions is only the deployment trigger, not the web server.
 
 1. In Cloudflare Zero Trust, create a remotely-managed tunnel.
 2. Add a public hostname such as `compass.example.com`.
@@ -116,22 +115,23 @@ COMPASS_PUBLIC_BASE_URL=https://compass.example.com
 CLOUDFLARE_TUNNEL_TOKEN=<token from Cloudflare>
 ```
 
-5. On the host, run once:
+5. On the PC, run once:
 
 ```bash
 docker compose -f deploy/docker-compose.cloudflare.yml up -d --build
 ```
 
-6. In GitHub repository secrets, add:
+6. In GitHub, add this repository as a self-hosted runner on your PC:
 
 ```text
-DEPLOY_HOST=<host or IP>
-DEPLOY_USER=<ssh user>
-DEPLOY_SSH_KEY=<private key allowed to SSH to the host>
-DEPLOY_PATH=<absolute path to the cloned compass repo on the host>
+Settings -> Actions -> Runners -> New self-hosted runner
 ```
 
-7. Push to `main`, or run the `Deploy Compass` workflow manually.
+Follow the Windows instructions GitHub shows. Leave the runner app running, or
+install it as a service.
+
+7. Push to `main`, or run the `Deploy Compass` workflow manually. The workflow
+   runs on your PC and restarts the local Docker Compose stack.
 
 After Cloudflare is healthy, set `openapi.yaml` to:
 
@@ -149,9 +149,13 @@ COMPASS_PUBLIC_BASE_URL=https://your-public-domain.example
 COMPASS_USER_ID=moshe
 COMPASS_SELF_MANAGE_BASE_URL=http://127.0.0.1:8001
 COMPASS_ASSESSMENT_BASE_URL=http://127.0.0.1:8002
+COMPASS_ASSESSMENT_PATH=../personal_Assessment
 COMPASS_RULES_ENGINE_BASE_URL=http://127.0.0.1:8003
 COMPASS_MAIL_MANAGER_BASE_URL=http://127.0.0.1:8004
 COMPASS_ECONOMIC_SPENDING_BASE_URL=http://127.0.0.1:8005
+COMPASS_ECONOMIC_SPENDING_PATH=../economic_spending
+COMPASS_AUTOSTART_LOCAL_AGENTS=true
+COMPASS_AUTOSTART_WAIT_SECONDS=12
 ```
 
 ## Local Agent Ports
@@ -169,6 +173,24 @@ COMPASS_ECONOMIC_SPENDING_BASE_URL=http://127.0.0.1:8005
 
 `rules_engine` uses `/evaluate` because the rule engine should decide/recommend first.
 Compass should be the component that decides whether a recommended action is safe to execute.
+
+## Dormant Local Agents
+
+Compass can keep specialist local agents dormant until a GPT request actually needs
+them. When `COMPASS_AUTOSTART_LOCAL_AGENTS=true`, Compass checks the configured
+localhost port before calling `personal_Assessment` or `economic_spending`. If the
+port is closed, Compass starts that project in the background, waits briefly, then
+sends the original request.
+
+This keeps the usual runtime lighter:
+
+```text
+Change Coach GPT -> Compass always on
+Compass -> starts personal_Assessment only when assessment is requested
+Compass -> starts economic_spending only when spending analysis is requested
+```
+
+The child process logs are written under `logs/*.autostart.log`.
 
 ## Approval Queue
 
@@ -202,6 +224,19 @@ pending -> cancelled
 - Define per-agent execution contracts for approved requests.
 - Decide whether TaskCommander should replace Compass local task storage as the durable task source.
 - Decide which administrative domains to prioritize first: government, banks, health fund, schools, municipality, insurance, utilities.
+
+## Agent-Style Services
+
+Compass treats connected services as specialist agents when they expose a generic
+`POST /api/agent/invoke` contract. The current agent-style services are:
+
+- `personal_Assessment`: evaluates current-state evidence, signals, recommendations,
+  confidence, and proposed measurement/review actions.
+- `economic_spending`: evaluates spending events, signals, recommendations, and
+  proposed review actions.
+
+Agent Forge is not a Compass dependency. `personal_Assessment` has its own optional
+Agent Forge export path for generated reviews.
 
 ## TaskCommander Role
 

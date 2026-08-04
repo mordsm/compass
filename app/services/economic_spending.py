@@ -4,20 +4,25 @@ from typing import Any
 
 from app.config import get_settings
 from app.services.http_adapter import get_json, post_json
+from app.services.local_agent_launcher import ensure_economic_spending_running
 
 
 class EconomicSpendingAdapter:
     def health(self) -> dict[str, Any]:
+        ensure_economic_spending_running()
         return get_json(get_settings().economic_spending_base_url, "/health")
 
     def summary(self, user_id: str, days: int = 30) -> dict[str, Any]:
+        ensure_economic_spending_running()
         return get_json(
             get_settings().economic_spending_base_url,
             f"/api/spending/summary?user_id={user_id}&days={days}",
         )
 
     def record_event(self, payload: dict[str, Any]) -> dict[str, Any]:
+        ensure_economic_spending_running()
         return post_json(get_settings().economic_spending_base_url, "/api/spending/event", payload)
 
     def invoke_agent(self, payload: dict[str, Any]) -> dict[str, Any]:
+        ensure_economic_spending_running()
         return post_json(get_settings().economic_spending_base_url, "/api/agent/invoke", payload)
