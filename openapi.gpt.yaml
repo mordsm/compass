@@ -1,0 +1,583 @@
+openapi: 3.1.0
+info:
+  title: Compass GPT Gateway
+  version: 0.1.0
+  description: Small GPT-safe Compass API for status, morning brief, and training memory.
+servers:
+  - url: https://hold-privileges-that-devon.trycloudflare.com
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    ServiceStatus:
+      type: object
+      required: [connected, base_url]
+      properties:
+        connected:
+          type: boolean
+        base_url:
+          type: string
+        latency_ms:
+          type: integer
+          default: 0
+        warning:
+          type: string
+          default: ""
+security:
+  - bearerAuth: []
+paths:
+  /api/agents/invoke:
+    post:
+      operationId: invokeCompassAgent
+      summary: Invoke a Compass peer agent, including economic_manager.
+      x-openai-isConsequential: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [agent_id, task]
+              properties:
+                agent_id:
+                  type: string
+                  enum: [economic_manager, rules_engine, self_manage, assessment, mail_manager, task_commander, administrative, self_trainer]
+                  default: economic_manager
+                task:
+                  type: string
+                  description: For economic_manager use analyze, record_transaction, record_event, import_csv, import_financial_items, ingest_sources, sync_mail_financial_items, set_alert_rule, or remember.
+                user_id:
+                  type: string
+                  default: moshe
+                context:
+                  type: object
+                expected_output:
+                  type: string
+                require_approval:
+                  type: boolean
+                  default: false
+                risk_level:
+                  type: string
+                  default: medium
+      responses:
+        "200":
+          description: Agent invocation result.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connected:
+                    type: boolean
+                  status:
+                    type: string
+                  approval_request_id:
+                    type: string
+                  result:
+                    type: object
+  /api/gpt/status-flat:
+    get:
+      operationId: getCompassStatusFlatV2
+      summary: Check Compass-connected systems and return a flat text-friendly status.
+      x-openai-isConsequential: false
+      responses:
+        "200":
+          description: Flat system status.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - service
+                  - connected_systems
+                  - disconnected_systems
+                  - systems_text
+                  - connected_count
+                  - disconnected_count
+                properties:
+                  success:
+                    type: boolean
+                  service:
+                    type: string
+                  connected_systems:
+                    type: string
+                  disconnected_systems:
+                    type: string
+                  systems_text:
+                    type: string
+                  connected_count:
+                    type: integer
+                  disconnected_count:
+                    type: integer
+  /api/gpt/morning-flat:
+    get:
+      operationId: getCompassMorningFlatV2
+      summary: Load a flat text-friendly morning brief.
+      x-openai-isConsequential: false
+      parameters:
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            type: string
+            default: moshe
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: timezone
+          in: query
+          required: false
+          schema:
+            type: string
+            default: Asia/Jerusalem
+        - name: include
+          in: query
+          required: false
+          schema:
+            type: string
+            default: training,economic_manager,assessment,task_commander,administrative
+      responses:
+        "200":
+          description: Flat morning brief.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - user_id
+                  - date
+                  - timezone
+                  - summary
+                  - connected_systems
+                  - disconnected_systems
+                  - warnings_text
+                  - open_task_count
+                  - recent_event_count
+                  - recent_daily_plan_count
+                  - training_sessions_completed
+                  - training_next_focus
+                properties:
+                  success:
+                    type: boolean
+                  user_id:
+                    type: string
+                  date:
+                    type: string
+                    format: date
+                  timezone:
+                    type: string
+                  summary:
+                    type: string
+                  connected_systems:
+                    type: string
+                  disconnected_systems:
+                    type: string
+                  warnings_text:
+                    type: string
+                  open_task_count:
+                    type: integer
+                  recent_event_count:
+                    type: integer
+                  recent_daily_plan_count:
+                    type: integer
+                  training_sessions_completed:
+                    type: integer
+                    default: 0
+                  training_next_focus:
+                    type: string
+                    default: ""
+  /api/gpt/status:
+    get:
+      operationId: getGptSystemStatus
+      summary: Check which Compass-connected local systems are available.
+      x-openai-isConsequential: false
+      responses:
+        "200":
+          description: System status.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, service, systems]
+                properties:
+                  success:
+                    type: boolean
+                  service:
+                    type: string
+                  systems:
+                    type: object
+                    properties:
+                      training:
+                        $ref: "#/components/schemas/ServiceStatus"
+                      assessment:
+                        $ref: "#/components/schemas/ServiceStatus"
+                      economic_manager:
+                        $ref: "#/components/schemas/ServiceStatus"
+                      task_commander:
+                        $ref: "#/components/schemas/ServiceStatus"
+                      administrative:
+                        $ref: "#/components/schemas/ServiceStatus"
+                      self_manage:
+                        $ref: "#/components/schemas/ServiceStatus"
+                      rules_engine:
+                        $ref: "#/components/schemas/ServiceStatus"
+                      mail_manager:
+                        $ref: "#/components/schemas/ServiceStatus"
+  /api/gpt/morning:
+    get:
+      operationId: getGptMorningBrief
+      summary: Load a compact morning brief for GPT display.
+      x-openai-isConsequential: false
+      parameters:
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            type: string
+            default: moshe
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: timezone
+          in: query
+          required: false
+          schema:
+            type: string
+            default: Asia/Jerusalem
+        - name: include
+          in: query
+          required: false
+          schema:
+            type: string
+            default: training,economic_manager,assessment,task_commander,administrative
+      responses:
+        "200":
+          description: Morning brief.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, user_id, date, timezone, systems, warnings, summary, counts]
+                properties:
+                  success:
+                    type: boolean
+                  user_id:
+                    type: string
+                  date:
+                    type: string
+                    format: date
+                  timezone:
+                    type: string
+                  systems:
+                    type: object
+                    properties:
+                      training:
+                        $ref: "#/components/schemas/ServiceStatus"
+                      assessment:
+                        $ref: "#/components/schemas/ServiceStatus"
+                      economic_manager:
+                        $ref: "#/components/schemas/ServiceStatus"
+                      task_commander:
+                        $ref: "#/components/schemas/ServiceStatus"
+                      administrative:
+                        $ref: "#/components/schemas/ServiceStatus"
+                  warnings:
+                    type: array
+                    items:
+                      type: string
+                  summary:
+                    type: string
+                  suggested_focus:
+                    type: array
+                    items:
+                      type: string
+                  counts:
+                    type: object
+                    required: [open_tasks, recent_events, recent_daily_plans, warnings]
+                    properties:
+                      open_tasks:
+                        type: integer
+                      recent_events:
+                        type: integer
+                      recent_daily_plans:
+                        type: integer
+                      warnings:
+                        type: integer
+                  training_sessions_completed:
+                    type: integer
+                    default: 0
+                  training_next_focus:
+                    type: string
+                    default: ""
+  /api/gpt/training/session:
+    post:
+      operationId: saveGptTrainingSession
+      summary: Save a compact inner-training session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, session_date, session_type]
+              properties:
+                user_id:
+                  type: string
+                  default: moshe
+                session_date:
+                  type: string
+                  format: date
+                session_type:
+                  type: string
+                event_summary:
+                  type: string
+                key_insight:
+                  type: string
+                distress_before:
+                  type: integer
+                  minimum: 0
+                  maximum: 10
+                distress_after:
+                  type: integer
+                  minimum: 0
+                  maximum: 10
+      responses:
+        "200":
+          description: Training session save result.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, connected]
+                properties:
+                  success:
+                    type: boolean
+                  connected:
+                    type: boolean
+                  session_id:
+                    type: string
+                    default: ""
+                  message:
+                    type: string
+                    default: ""
+                  warning:
+                    type: string
+                    default: ""
+  /api/gpt/assessment/start:
+    post:
+      operationId: startGptAssessment
+      summary: Start personal assessment, return UI links, and optionally open the local assessment UI.
+      x-openai-isConsequential: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  default: moshe
+                task:
+                  type: string
+                  enum: [analyze, morning_context, recommend_next, generate_review]
+                  default: analyze
+                days:
+                  type: integer
+                  minimum: 1
+                  maximum: 365
+                  default: 30
+                expected_output:
+                  type: string
+                risk_level:
+                  type: string
+                  default: medium
+                dry_run:
+                  type: boolean
+                  default: true
+                open_ui:
+                  type: boolean
+                  default: false
+                  description: Set true when the user explicitly asks to open the assessment UI.
+                ui_target:
+                  type: string
+                  enum: [home, assessments, battery, focus, energy, physical]
+                  default: battery
+                context:
+                  type: object
+      responses:
+        "200":
+          description: Assessment start result.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, connected, task]
+                properties:
+                  success:
+                    type: boolean
+                  connected:
+                    type: boolean
+                  task:
+                    type: string
+                  summary:
+                    type: string
+                  confidence:
+                    type: string
+                  findings:
+                    type: array
+                    items:
+                      type: object
+                  signals:
+                    type: array
+                    items:
+                      type: string
+                  recommendations:
+                    type: array
+                    items:
+                      type: string
+                  proposed_actions:
+                    type: array
+                    items:
+                      type: object
+                  requires_approval:
+                    type: boolean
+                  ui_url:
+                    type: string
+                  ui_urls:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  ui_opened:
+                    type: boolean
+                  user_instruction:
+                    type: string
+                  warning:
+                    type: string
+  /api/rules/workflows/assessment-finding:
+    post:
+      operationId: runAssessmentFindingRulesWorkflow
+      summary: Evaluate an assessment finding through rules_engine and optionally create a cardio-focused self_manage plan.
+      x-openai-isConsequential: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event_id, occurred_at, idempotency_key, domain, finding_type, confidence]
+              properties:
+                user_id:
+                  type: string
+                  default: moshe
+                event_id:
+                  type: string
+                occurred_at:
+                  type: string
+                  format: date-time
+                idempotency_key:
+                  type: string
+                domain:
+                  type: string
+                  default: fitness
+                finding_type:
+                  type: string
+                  default: aerobic_fitness_gap
+                severity:
+                  type: string
+                  enum: [low, medium, high, critical]
+                  default: medium
+                confidence:
+                  type: number
+                current_state:
+                  type: string
+                  default: low
+                evidence:
+                  type: array
+                  items:
+                    type: string
+                recommended_capability:
+                  type: string
+                  default: fitness_planning
+                dry_run:
+                  type: boolean
+                  default: true
+                execute_self_manage:
+                  type: boolean
+                  default: false
+                  description: Set true only after the user explicitly asks Compass to create the self_manage plan.
+                approval_confirmed:
+                  type: boolean
+                  default: false
+                  description: Set true only when the user has explicitly approved executing the plan creation.
+                open_ui:
+                  type: boolean
+                  default: false
+                  description: Set true when the user explicitly asks to open the self_manage exercise UI.
+      responses:
+        "200":
+          description: Rules workflow result and optional self_manage execution.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  status:
+                    type: string
+                  approval_request_id:
+                    type: string
+                  self_manage_route:
+                    type: object
+                  self_manage_profile:
+                    type: object
+                  self_manage_plan:
+                    type: object
+                    properties:
+                      plan_id:
+                        type: string
+                      plan_date:
+                        type: string
+                      selected_plan_item_id:
+                        type: integer
+                      selected_domain:
+                        type: object
+                      selected_exercise:
+                        type: object
+                      session_url:
+                        type: string
+                      today_url:
+                        type: string
+                      items:
+                        type: array
+                        items:
+                          type: object
+                  ui_url:
+                    type: string
+                  ui_urls:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  ui_opened:
+                    type: boolean
+                  ui_open_method:
+                    type: string
+                  executed_actions:
+                    type: array
+                    items:
+                      type: object
+                  warnings:
+                    type: array
+                    items:
+                      type: string

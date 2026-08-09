@@ -9,7 +9,8 @@ The GPT should connect only to Compass through GPT Actions. Compass then coordin
 - `self_manage` for physical, mental, and cognitive management context.
 - `personal_Assessment` for current-state assessment context.
 - `mail_manager` for Gmail, financial mail, alerts, and email-derived financial items.
-- `economic_spending` for spending events, summaries, and spending-risk signals.
+- `economic_manager` as the single economic agent for financial picture, spending,
+  income, obligations, alerts, reports, and financial memory.
 - `TaskCommander` for operational tasks, reminders, recurrence, external task/calendar sync, and completion actions.
 - `administrative_agent` for government, institutions, obligations, cases, documents, and prepared communications.
 - Local Compass storage for tasks, plans, conversation events, and summaries.
@@ -45,6 +46,17 @@ Local URL:
 ```text
 http://localhost:8000
 ```
+
+To start Compass and a temporary Cloudflare tunnel together:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\scripts\start-compass.ps1
+```
+
+The launcher prints the public `trycloudflare.com` URL and updates `.env` and
+`openapi.yaml` and `openapi.gpt.yaml` with it. For Custom GPT Actions, prefer
+importing `openapi.gpt.yaml`; it exposes the small GPT-facing API instead of the
+full internal Compass API. Re-import it when the tunnel URL changes.
 
 For a Custom GPT Action, expose this server through a public HTTPS tunnel, then update
 `openapi.yaml`:
@@ -152,8 +164,11 @@ COMPASS_ASSESSMENT_BASE_URL=http://127.0.0.1:8002
 COMPASS_ASSESSMENT_PATH=../personal_Assessment
 COMPASS_RULES_ENGINE_BASE_URL=http://127.0.0.1:8003
 COMPASS_MAIL_MANAGER_BASE_URL=http://127.0.0.1:8004
-COMPASS_ECONOMIC_SPENDING_BASE_URL=http://127.0.0.1:8005
-COMPASS_ECONOMIC_SPENDING_PATH=../economic_spending
+COMPASS_ECONOMIC_MANAGER_BASE_URL=http://127.0.0.1:8005
+COMPASS_ECONOMIC_MANAGER_PATH=../economic_manager
+COMPASS_TASK_COMMANDER_BASE_URL=http://127.0.0.1:8006
+COMPASS_ADMINISTRATIVE_BASE_URL=http://127.0.0.1:8007
+COMPASS_SELF_TRAINER_BASE_URL=http://127.0.0.1:8008
 COMPASS_AUTOSTART_LOCAL_AGENTS=true
 COMPASS_AUTOSTART_WAIT_SECONDS=12
 ```
@@ -166,19 +181,24 @@ COMPASS_AUTOSTART_WAIT_SECONDS=12
 8002  personal_Assessment
 8003  rules_engine service, using POST /evaluate
 8004  mail_manager
-8005  economic_spending
+8005  economic_manager
 8006  TaskCommander
 8007  administrative_agent
+8008  self_trainer
 ```
 
 `rules_engine` uses `/evaluate` because the rule engine should decide/recommend first.
 Compass should be the component that decides whether a recommended action is safe to execute.
 
+`self_trainer` owns inner-training/reflection memory. Compass proxies its
+training context, session save, history search, and progress endpoints under
+`/api/training/*` so the Custom GPT can use one Compass Action schema.
+
 ## Dormant Local Agents
 
 Compass can keep specialist local agents dormant until a GPT request actually needs
 them. When `COMPASS_AUTOSTART_LOCAL_AGENTS=true`, Compass checks the configured
-localhost port before calling `personal_Assessment` or `economic_spending`. If the
+localhost port before calling `personal_Assessment` or `economic_manager`. If the
 port is closed, Compass starts that project in the background, waits briefly, then
 sends the original request.
 
@@ -187,7 +207,7 @@ This keeps the usual runtime lighter:
 ```text
 Change Coach GPT -> Compass always on
 Compass -> starts personal_Assessment only when assessment is requested
-Compass -> starts economic_spending only when spending analysis is requested
+Compass -> starts economic_manager only when economic analysis is requested
 ```
 
 The child process logs are written under `logs/*.autostart.log`.
@@ -219,7 +239,8 @@ pending -> cancelled
 
 - Confirm whether `rules_engine` should run on port `8003`.
 - Confirm whether `mail_manager` should run on port `8004`.
-- Decide whether `economic_spending` should read from `mail_manager` directly or only receive spending facts from Compass.
+- Keep economic_manager as the only economic agent; any mail-derived financial facts
+  should flow mail_manager -> Compass -> economic_manager.
 - Decide which actions are only recommendations and which actions are allowed to execute after approval.
 - Define per-agent execution contracts for approved requests.
 - Decide whether TaskCommander should replace Compass local task storage as the durable task source.
@@ -232,8 +253,8 @@ Compass treats connected services as specialist agents when they expose a generi
 
 - `personal_Assessment`: evaluates current-state evidence, signals, recommendations,
   confidence, and proposed measurement/review actions.
-- `economic_spending`: evaluates spending events, signals, recommendations, and
-  proposed review actions.
+- `economic_manager`: evaluates financial events, memory, summaries, alerts,
+  reports, deterministic money calculations, and proposed review actions.
 
 Agent Forge is not a Compass dependency. `personal_Assessment` has its own optional
 Agent Forge export path for generated reviews.

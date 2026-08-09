@@ -6,7 +6,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 
-def get_json(base_url: str, path: str, timeout: float = 3.0) -> dict[str, Any]:
+def get_json(base_url: str, path: str, timeout: float = 1.5) -> dict[str, Any]:
     if not base_url:
         return {"connected": False, "warning": "base URL is not configured"}
     url = base_url.rstrip("/") + "/" + path.lstrip("/")
@@ -17,7 +17,7 @@ def get_json(base_url: str, path: str, timeout: float = 3.0) -> dict[str, Any]:
         return {"connected": False, "url": url, "warning": str(exc)}
 
 
-def post_json(base_url: str, path: str, payload: dict[str, Any], timeout: float = 5.0) -> dict[str, Any]:
+def post_json(base_url: str, path: str, payload: dict[str, Any], timeout: float = 3.0) -> dict[str, Any]:
     if not base_url:
         return {"connected": False, "warning": "base URL is not configured"}
     url = base_url.rstrip("/") + "/" + path.lstrip("/")

@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from app.database import init_db
-from app.routers import agents, approvals, context, conversations, daily_plan, health, rules, tasks
+from app.routers import agents, approvals, context, conversations, daily_plan, gpt, health, rules, tasks, training
 
 
 def create_app() -> FastAPI:
@@ -18,10 +18,12 @@ def create_app() -> FastAPI:
         init_db()
 
     app.include_router(health.router)
+    app.include_router(gpt.router)
     app.include_router(context.router)
     app.include_router(conversations.router)
     app.include_router(daily_plan.router)
     app.include_router(tasks.router)
+    app.include_router(training.router)
     app.include_router(rules.router)
     app.include_router(agents.router)
     app.include_router(approvals.router)

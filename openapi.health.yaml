@@ -1,0 +1,24 @@
+openapi: 3.1.0
+info:
+  title: Compass Gateway Health
+  version: 0.1.0
+  description: Minimal Compass Action schema for connection testing.
+servers:
+  - url: https://owned-paint-entries-installation.trycloudflare.com
+paths:
+  /api/health:
+    get:
+      operationId: health
+      summary: Check whether Compass is running.
+      responses:
+        "200":
+          description: Compass health status.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string

@@ -10,9 +10,10 @@ AgentId = Literal[
     "self_manage",
     "assessment",
     "mail_manager",
-    "economic_spending",
+    "economic_manager",
     "task_commander",
     "administrative",
+    "self_trainer",
 ]
 
 

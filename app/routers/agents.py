@@ -6,10 +6,11 @@ from app.auth import require_actions_key
 from app.repository import CompassRepository
 from app.schemas.agents import InvokeAgentRequest
 from app.services.assessment import AssessmentAdapter
-from app.services.economic_spending import EconomicSpendingAdapter
+from app.services.economic_manager import EconomicManagerAdapter
 from app.services.mail_manager import MailManagerAdapter
 from app.services.rules_engine import RulesEngineAdapter
 from app.services.self_management import SelfManagementAdapter
+from app.services.self_trainer import SelfTrainerAdapter
 from app.services.task_commander import TaskCommanderAdapter
 from app.services.administrative import AdministrativeAdapter
 
@@ -55,6 +56,22 @@ def invoke_agent(request: InvokeAgentRequest) -> dict:
                 "hourly_reminder": SelfManagementAdapter().get_hourly_reminder(),
             },
         }
+    if request.agent_id == "self_trainer":
+        trainer = SelfTrainerAdapter()
+        if request.task == "save_session":
+            return trainer.save_session({**request.context, "user_id": request.user_id})
+        if request.task == "search_history":
+            return trainer.search_history({**request.context, "user_id": request.user_id})
+        return {
+            "connected": True,
+            "result": {
+                "context": trainer.context(user_id=request.user_id),
+                "progress": trainer.progress(
+                    user_id=request.user_id,
+                    period=str(request.context.get("period", "last_30_days")),
+                ),
+            },
+        }
     if request.agent_id == "assessment":
         assessment = AssessmentAdapter()
         payload = {
@@ -85,10 +102,45 @@ def invoke_agent(request: InvokeAgentRequest) -> dict:
                 "financial_items": mail.financial_items(limit=20),
             },
         }
-    if request.agent_id == "economic_spending":
-        economic = EconomicSpendingAdapter()
-        payload = {**request.context, "user_id": request.user_id, "task": request.task}
-        result = economic.invoke_agent(
+    if request.agent_id == "economic_manager":
+        if request.task == "sync_mail_financial_items":
+            mail = MailManagerAdapter()
+            economic = EconomicManagerAdapter()
+            if request.context.get("ingest_mail"):
+                mail.ingest(
+                    query=request.context.get("mail_query"),
+                    max_results=request.context.get("mail_max_results"),
+                )
+            financial_items = mail.financial_items(
+                limit=int(request.context.get("limit", 50)),
+                status=request.context.get("status"),
+            )
+            items = financial_items.get("items", [])
+            result = economic.import_financial_items(
+                {
+                    "household_id": request.context.get("household_id", f"{request.user_id}_household"),
+                    "user_id": request.user_id,
+                    "items": items,
+                    "source": "email",
+                    "default_category": request.context.get("default_category", "bills"),
+                }
+            )
+            CompassRepository().audit(
+                "agents.invoke.economic_manager.sync_mail_financial_items",
+                request.user_id,
+                {
+                    "connected": True,
+                    "items_seen": len(items),
+                    "created": result.get("created"),
+                    "duplicates": result.get("duplicates"),
+                },
+            )
+            return {
+                "connected": True,
+                "mail_financial_items": financial_items,
+                "result": result,
+            }
+        result = EconomicManagerAdapter().invoke_agent(
             {
                 "task": request.task,
                 "user_id": request.user_id,
@@ -97,11 +149,16 @@ def invoke_agent(request: InvokeAgentRequest) -> dict:
                 "risk_level": request.risk_level,
             }
         )
-        if result.get("connected"):
-            return result
-        if request.task == "record_event":
-            return economic.record_event(payload)
-        return economic.summary(user_id=request.user_id)
+        CompassRepository().audit(
+            "agents.invoke.economic_manager",
+            request.user_id,
+            {
+                "requested_agent_id": request.agent_id,
+                "task": request.task,
+                "connected": bool(result.get("connected")),
+            },
+        )
+        return result
     if request.agent_id == "task_commander":
         task_commander = TaskCommanderAdapter()
         if request.task == "create_task":

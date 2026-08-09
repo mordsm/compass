@@ -30,6 +30,32 @@ class CompassRepository:
                 (resource_id("audit"), action, user_id, json_dump(payload), utc_now()),
             )
 
+    def save_rule_evaluation(self, request: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
+        evaluation_id = str(result.get("evaluation_id") or resource_id("eval"))
+        with db() as conn:
+            conn.execute(
+                """
+                insert into rule_evaluations
+                (id, event_id, user_id, event_type, source, final_decision, risk_level, dry_run,
+                 request_json, result_json, created_at)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    evaluation_id,
+                    request["event_id"],
+                    request["user_id"],
+                    request["event_type"],
+                    request["source"],
+                    str(result.get("final_decision") or result.get("decision") or "recommendation_only"),
+                    str(result.get("risk_level") or "low"),
+                    1 if bool(result.get("dry_run")) else 0,
+                    json_dump(request),
+                    json_dump(result),
+                    utc_now(),
+                ),
+            )
+        return {"success": True, "status": "created", "resource_id": evaluation_id, "already_existed": False}
+
     def save_conversation_event(self, payload: dict[str, Any]) -> dict[str, Any]:
         event_id = resource_id("event")
         with db() as conn:

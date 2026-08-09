@@ -24,13 +24,39 @@ def ensure_assessment_running() -> None:
     )
 
 
-def ensure_economic_spending_running() -> None:
+def ensure_economic_manager_running() -> None:
     settings = get_settings()
     ensure_local_service(
-        name="economic_spending",
-        base_url=settings.economic_spending_base_url,
-        project_path=settings.economic_spending_path,
-        command=["uv", "run", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", _port(settings.economic_spending_base_url)],
+        name="economic_manager",
+        base_url=settings.economic_manager_base_url,
+        project_path=settings.economic_manager_path,
+        command=[
+            "uv",
+            "--system-certs",
+            "run",
+            "uvicorn",
+            "app.main:app",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            _port(settings.economic_manager_base_url),
+        ],
+    )
+
+
+def ensure_rules_engine_running() -> None:
+    settings = get_settings()
+    ensure_local_service(
+        name="rules_engine",
+        base_url=settings.rules_engine_base_url,
+        project_path=settings.rules_engine_path,
+        command=[
+            "uv",
+            "run",
+            "python",
+            "-c",
+            f"from service import run_server; run_server(port={_port(settings.rules_engine_base_url)})",
+        ],
     )
 
 
