@@ -115,7 +115,7 @@ def invoke_agent(request: InvokeAgentRequest) -> dict:
                 limit=int(request.context.get("limit", 50)),
                 status=request.context.get("status"),
             )
-            items = financial_items.get("items", [])
+            items = financial_items.get("items") or financial_items.get("result", {}).get("items", [])
             result = economic.import_financial_items(
                 {
                     "household_id": request.context.get("household_id", f"{request.user_id}_household"),
