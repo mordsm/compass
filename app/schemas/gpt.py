@@ -92,7 +92,7 @@ class GptAssessmentStartRequest(BaseModel):
     risk_level: str = "medium"
     dry_run: bool = True
     open_ui: bool = False
-    ui_target: Literal["home", "assessments", "battery", "focus", "energy", "physical"] = "battery"
+    ui_target: Literal["home", "assessments", "battery", "focus", "energy", "mental", "physical"] = "battery"
     context: dict[str, Any] = Field(default_factory=dict)
 
 

@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: Central GPT Actions API for daily planning and personal orchestration.
 servers:
-  - url: https://hold-privileges-that-devon.trycloudflare.com
+  - url: https://harrison-loan-labels-processing.trycloudflare.com
 components:
   securitySchemes:
     bearerAuth:

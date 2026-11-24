@@ -1,0 +1,22 @@
+flowchart TD
+  START([START<br/>GPT Action / Local UI / Scheduler])
+  Intake["CompassIntake<br/>normalize task, user_id, context"]
+  ApprovalGate{"ApprovalGate<br/>require_approval?"}
+  ApprovalQueue["ApprovalQueue<br/>create approval request"]
+  CompassRouter{"CompassRouter<br/>agent_id + task"}
+  AuditEnd([AuditEnd<br/>audit + response])
+
+  START --> Intake --> ApprovalGate
+  ApprovalGate -- "yes" --> ApprovalQueue --> AuditEnd
+  ApprovalGate -- "no" --> CompassRouter
+
+  CompassRouter -- "rules_engine" --> PolicyEntry["PolicyEntry"]
+  CompassRouter -- "self_manage / assessment / self_trainer" --> WellbeingEntry["WellbeingEntry"]
+  CompassRouter -- "mail_manager / economic_manager" --> FinanceEntry["FinanceEntry"]
+  CompassRouter -- "task_commander / administrative" --> OperationsEntry["OperationsEntry"]
+  START --> StorageEntry["StorageEntry"]
+
+  classDef compass fill:#e0f2fe,stroke:#0369a1,color:#0f172a;
+  classDef terminal fill:#f8fafc,stroke:#334155,stroke-width:2px,color:#0f172a;
+  class START,AuditEnd terminal;
+  class Intake,ApprovalGate,ApprovalQueue,CompassRouter,PolicyEntry,WellbeingEntry,FinanceEntry,OperationsEntry,StorageEntry compass;

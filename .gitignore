@@ -7,4 +7,6 @@ __pycache__/
 *.egg-info/
 data/*.db
 data/*.db-*
+data/*_token.json
+data/*_credentials.json
 logs/

@@ -12,12 +12,13 @@ class Settings(BaseSettings):
 
     actions_api_key: str = Field(default="dev-only-change-me")
     database_path: Path = Field(default=Path("data/compass.db"))
-    database_url: str | None = None
+    database_url: str | None = "postgresql://compass:compass@127.0.0.1:55436/compass"
     public_base_url: str = Field(default="http://localhost:8000")
     user_id: str = Field(default="moshe")
     rules_engine_path: Path = Field(default=Path("../rules_engine"))
     rules_engine_base_url: str = Field(default="http://127.0.0.1:8003")
     self_manage_base_url: str = Field(default="http://127.0.0.1:8001")
+    self_manage_path: Path = Field(default=Path("../self_manage"))
     assessment_base_url: str = Field(default="http://127.0.0.1:8002")
     assessment_path: Path = Field(default=Path("../personal_Assessment"))
     mail_manager_base_url: str = Field(default="http://127.0.0.1:8004")
@@ -26,6 +27,8 @@ class Settings(BaseSettings):
     task_commander_base_url: str = Field(default="http://127.0.0.1:8006")
     administrative_base_url: str = Field(default="http://127.0.0.1:8007")
     self_trainer_base_url: str = Field(default="http://127.0.0.1:8008")
+    drawmentor_base_url: str = Field(default="http://127.0.0.1:8011")
+    drawmentor_path: Path = Field(default=Path("../drawMentor"))
     autostart_local_agents: bool = Field(default=True)
     autostart_wait_seconds: float = Field(default=12.0)
 

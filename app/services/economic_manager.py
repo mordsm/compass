@@ -19,6 +19,15 @@ class EconomicManagerAdapter:
             f"/api/summary?household_id={household_id}&days={days}",
         )
 
+    def cashflow(self, household_id: str = "moshe_household", year: int | None = None, month: int | None = None) -> dict[str, Any]:
+        ensure_economic_manager_running()
+        query = f"/api/cashflow?household_id={household_id}"
+        if year:
+            query += f"&year={year}"
+        if month:
+            query += f"&month={month}"
+        return get_json(get_settings().economic_manager_base_url, query)
+
     def record_transaction(self, payload: dict[str, Any]) -> dict[str, Any]:
         ensure_economic_manager_running()
         return post_json(get_settings().economic_manager_base_url, "/api/transactions", payload)

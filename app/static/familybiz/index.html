@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#163832" />
+    <title>FamilyBiz</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="ניווט">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <span></span>
+          </div>
+          <div>
+            <strong>FamilyBiz</strong>
+            <small>תזרים משפחתי</small>
+          </div>
+        </div>
+
+        <nav class="nav-tabs" aria-label="מסכים">
+          <button class="nav-tab active" data-view="dashboard" title="תזרים">
+            <span class="icon icon-cash"></span>
+            <span>תזרים</span>
+          </button>
+          <button class="nav-tab" data-view="budget" title="תקציב">
+            <span class="icon icon-budget"></span>
+            <span>תקציב</span>
+          </button>
+          <button class="nav-tab" data-view="assets" title="נכסים">
+            <span class="icon icon-assets"></span>
+            <span>נכסים</span>
+          </button>
+          <button class="nav-tab" data-view="alerts" title="התראות">
+            <span class="icon icon-alerts"></span>
+            <span>התראות</span>
+          </button>
+        </nav>
+
+        <section class="sync-panel">
+          <div>
+            <strong>חיבור Compass</strong>
+            <small id="syncStatus">מצב דמו פעיל</small>
+          </div>
+          <label>
+            <span>API key</span>
+            <input id="apiKeyInput" type="password" autocomplete="off" placeholder="אופציונלי" />
+          </label>
+          <button id="refreshButton" class="primary-action">
+            <span class="icon icon-refresh"></span>
+            <span>רענן נתונים</span>
+          </button>
+        </section>
+      </aside>
+
+      <main class="content">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">בית משפחת שרון</p>
+            <h1 id="viewTitle">תמונת כסף להיום</h1>
+          </div>
+          <div class="period-switch" role="group" aria-label="תקופה">
+            <button class="chip active">אוגוסט</button>
+            <button class="chip">ספטמבר</button>
+            <button class="chip">רבעון</button>
+          </div>
+        </header>
+
+        <section id="dashboardView" class="view active">
+          <div class="hero-grid">
+            <article class="cash-card primary">
+              <div class="card-header">
+                <span class="status-dot"></span>
+                <span id="freshnessText">תמונה חלקית</span>
+              </div>
+              <p>פנוי להוצאה משתנה</p>
+              <strong id="availableAmount">5,581.84 ₪</strong>
+              <div class="daily-line">
+                <span id="dailyAmount">253.72 ₪ ליום</span>
+                <span id="daysRemaining">22 ימים</span>
+              </div>
+              <div class="cash-meter" aria-hidden="true">
+                <span id="cashMeterFill"></span>
+              </div>
+            </article>
+
+            <article class="cash-card">
+              <p>יתרה נוכחית בבנק</p>
+              <strong id="bankBalance">16,975.43 ₪</strong>
+              <small id="balanceDate">נכון ל-09/08/2026</small>
+            </article>
+
+            <article class="cash-card warning">
+              <p>חיוב אשראי קרוב</p>
+              <strong id="cardCharge">9,891.70 ₪</strong>
+              <small id="cardDueDate">יורד ב-10/08/2026</small>
+            </article>
+
+            <article class="cash-card savings">
+              <p>הועבר לחיסכון</p>
+              <strong id="savingsTransfer">20,000.00 ₪</strong>
+              <small>לא נספר כהוצאה שוטפת</small>
+            </article>
+          </div>
+
+          <div class="work-grid">
+            <section class="panel wide">
+              <div class="panel-title">
+                <h2>תזרים החודש</h2>
+                <span id="projectedBalance">יתרה צפויה: 1,501.89 ₪</span>
+              </div>
+              <div class="flow-rail" aria-label="פירוט תזרים">
+                <div class="flow-step income">
+                  <span>הכנסות</span>
+                  <strong id="incomeAmount">28,473.45 ₪</strong>
+                </div>
+                <div class="flow-step expense">
+                  <span>הוצאות משתנות</span>
+                  <strong id="variableSpend">2,891.61 ₪</strong>
+                </div>
+                <div class="flow-step save">
+                  <span>חיסכון</span>
+                  <strong id="savingsAmount">20,000.00 ₪</strong>
+                </div>
+                <div class="flow-step credit">
+                  <span>אשראי קרוב</span>
+                  <strong id="settlementAmount">9,891.70 ₪</strong>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-title">
+                <h2>מקורות מידע</h2>
+                <span id="freshnessBadge" class="badge warning">דורש רענון</span>
+              </div>
+              <ul id="sourceList" class="source-list"></ul>
+            </section>
+
+            <section class="panel">
+              <div class="panel-title">
+                <h2>חיובים חוזרים</h2>
+                <span class="badge">זוהו אוטומטית</span>
+              </div>
+              <ul id="recurringList" class="compact-list"></ul>
+            </section>
+          </div>
+        </section>
+
+        <section id="budgetView" class="view">
+          <div class="section-grid">
+            <section class="panel wide">
+              <div class="panel-title">
+                <h2>ניצול תקציב לפי תחום</h2>
+                <span>יעד חודשי מול בפועל</span>
+              </div>
+              <div id="budgetBars" class="budget-bars"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-title">
+                <h2>בעלות משפחתית</h2>
+                <span>משותף / אישי</span>
+              </div>
+              <div class="ownership">
+                <div><strong>68%</strong><span>משותף</span></div>
+                <div><strong>21%</strong><span>משה</span></div>
+                <div><strong>11%</strong><span>עפרה</span></div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="assetsView" class="view">
+          <div class="section-grid">
+            <section class="panel wide">
+              <div class="panel-title">
+                <h2>נכסים והתחייבויות</h2>
+                <span>תמונה לפי מקורות</span>
+              </div>
+              <div id="assetMap" class="asset-map"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-title">
+                <h2>יעדי חיסכון</h2>
+                <span>התקדמות</span>
+              </div>
+              <div class="goal-card">
+                <span class="goal-ring" style="--progress: 64"></span>
+                <div>
+                  <strong>קרן ביטחון</strong>
+                  <small>64% מהיעד</small>
+                </div>
+              </div>
+              <div class="goal-card">
+                <span class="goal-ring" style="--progress: 38"></span>
+                <div>
+                  <strong>חופשה משפחתית</strong>
+                  <small>38% מהיעד</small>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="alertsView" class="view">
+          <div class="section-grid">
+            <section class="panel wide">
+              <div class="panel-title">
+                <h2>התראות חכמות</h2>
+                <span>בשפה פשוטה</span>
+              </div>
+              <ul id="alertsList" class="alerts-list"></ul>
+            </section>
+            <section class="panel">
+              <div class="panel-title">
+                <h2>פעולות מומלצות</h2>
+                <span>לבדיקה</span>
+              </div>
+              <div class="action-stack">
+                <button class="secondary-action">סמן העברה כחיסכון</button>
+                <button class="secondary-action">אשר מנויים קבועים</button>
+                <button class="secondary-action">הזמן בן/בת זוג</button>
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>

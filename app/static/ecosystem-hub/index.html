@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f172a" />
+    <title>Compass Ecosystem Hub</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="meta-banner">
+      <div class="meta-banner__row">
+        <div>
+          <p class="eyebrow">Compass ecosystem</p>
+          <h1>Interactive Hub Canvas</h1>
+        </div>
+        <div class="banner-actions">
+          <button id="refreshStateButton" class="ghost-button">Refresh</button>
+          <button id="addProjectButton" class="primary-button">Add Project/Agent</button>
+        </div>
+      </div>
+      <div class="meta-strip">
+        <div class="health-pill" id="healthPill">Health: loading…</div>
+        <div class="meta-stat" id="alertCountStat">Open alerts: 0</div>
+        <div class="meta-task-strip" id="metaTaskStrip" aria-label="urgent tasks"></div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="canvas-card">
+        <div class="canvas-card__header">
+          <div>
+            <h2>Global Graph</h2>
+            <p>Force-directed graph driven by <code>meta_window.graph.nodes</code> and <code>meta_window.graph.edges</code>.</p>
+          </div>
+          <div class="graph-legend">
+            <span class="legend-item legend-item--project">Project</span>
+            <span class="legend-item legend-item--agent">Agent</span>
+            <span class="legend-item legend-item--external">External</span>
+          </div>
+        </div>
+        <div class="graph-shell">
+          <svg id="graphSvg" role="img" aria-label="ecosystem graph"></svg>
+          <div id="tooltip" class="tooltip" hidden></div>
+        </div>
+      </section>
+    </main>
+
+    <aside id="drawer" class="drawer" aria-hidden="true">
+      <div class="drawer__panel">
+        <div class="drawer__header">
+          <div>
+            <p class="eyebrow" id="drawerModeLabel">Edit Project</p>
+            <h2 id="drawerTitle">Project Window</h2>
+          </div>
+          <button id="closeDrawerButton" class="icon-button" aria-label="Close drawer">✕</button>
+        </div>
+
+        <div class="drawer__meta">
+          <div>
+            <span class="muted">State revision</span>
+            <strong id="revisionLabel">—</strong>
+          </div>
+          <div>
+            <span class="muted">Base revision</span>
+            <strong id="baseRevisionLabel">—</strong>
+          </div>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="Project sections">
+          <button class="tab-button active" data-section="identity_and_role">identity_and_role</button>
+          <button class="tab-button" data-section="interfaces_and_flows">interfaces_and_flows</button>
+          <button class="tab-button" data-section="scheduler">scheduler</button>
+          <button class="tab-button" data-section="roadmap_and_tasks">roadmap_and_tasks</button>
+          <button class="tab-button" data-section="export_and_commit">export_and_commit</button>
+        </div>
+
+        <div id="drawerBody" class="drawer__body"></div>
+
+        <div class="drawer__footer">
+          <div>
+            <div class="muted">Generated JSON Patch</div>
+            <pre id="patchPreview" class="patch-preview">[]</pre>
+          </div>
+          <div class="drawer__actions">
+            <button id="saveExportButton" class="primary-button">Save &amp; Export</button>
+          </div>
+          <div id="validationSummary" class="validation-summary"></div>
+          <div id="saveResult" class="save-result"></div>
+        </div>
+      </div>
+    </aside>
+
+    <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>

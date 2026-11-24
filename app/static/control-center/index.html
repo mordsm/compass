@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Compass – System Control Center</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      line-height: 1.5;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    h1 { margin: 0; font-size: 1.6rem; color: var(--accent); }
+    h2 { margin-top: 0; font-size: 1.12rem; color: #e2e8f0; }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: #334155;
+    }
+    .badge.ok { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+    .badge.warn { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .badge.danger { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.86rem;
+    }
+    th, td {
+      text-align: right;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    th { color: var(--muted); font-weight: 600; }
+    button {
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.83rem;
+    }
+    button.secondary { background: #334155; color: var(--text); }
+    input[type="text"] {
+      background: #0b1120;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 10px;
+      border-radius: 6px;
+      width: 100%;
+    }
+    pre {
+      background: #0b1120;
+      padding: 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.82rem;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>🧭 Compass – System Control Center</h1>
+      <div style="color: var(--muted); font-size: 0.9rem;">
+        מרכז בקרה להתפתחות פרואקטיבית: מטרות, צפרדעים, הרגלים, אתגרים, אימון מנטלי, קטלוג כללים ושקיפות החלטות
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <span id="role-badge" class="badge ok">תפקיד: מתכנן (Planner)</span>
+      <button onclick="toggleRole()">החלף מתכנן / מבצע</button>
+      <button class="secondary" onclick="runCycle('morning')">🌅 הרץ מחזור בוקר</button>
+      <button class="secondary" onclick="runCycle('evening')">🌙 הרץ סיכום ערב</button>
+      <button class="secondary" onclick="runCycle('weekly')">📅 סיכום שבועי</button>
+      <button class="secondary" onclick="runCycle('monthly')">🗓 הערכה חודשית</button>
+      <button class="secondary" onclick="loadOverview()">🔄 רענן</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <h2>⚙️ מדיניות, תפקיד וגבולות אוטונומיה</h2>
+      <div id="policy-box">טוען...</div>
+    </div>
+    <div class="card">
+      <h2>🐸 מאגר צפרדעים (Eat That Frog)</h2>
+      <div id="frogs-box">טוען...</div>
+    </div>
+    <div class="card">
+      <h2>🔄 הרגלים ופרוטוקול הכנה (6 שלבים)</h2>
+      <div id="routines-box">טוען...</div>
+    </div>
+    <div class="card">
+      <h2>🌱 תחומי התפתחות (ליבה מול העשרה)</h2>
+      <div id="growth-box">טוען...</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>🎯 אתגרים אדפטיביים ומשחקיות לא-תחרותית</h2>
+      <div id="challenges-box">טוען...</div>
+    </div>
+    <div class="card">
+      <h2>🧠 הערכת התקדמות מנטלית רב-חודשית (Assessment)</h2>
+      <div id="mental-box">טוען...</div>
+    </div>
+    <div class="card">
+      <h2>🎙 קליטה מהירה (קול / טלגרם – Rule Engine First)</h2>
+      <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <input id="quick-input" type="text" placeholder="לדוגמה: ניצחון שקט: עצרתי לפני תגובה אוטומטית / מה הפעולה הבאה" />
+        <button onclick="sendQuickCapture()">שלח</button>
+      </div>
+      <div id="ai-box">טוען...</div>
+    </div>
+    <div class="card">
+      <h2>🔌 שירותים מחוברים ו-TaskCommander</h2>
+      <div id="services-box">טוען...</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: 20px;">
+    <h2>📜 קטלוג כללים פעילים (Rules Catalog & Versioning – 20 Rules)</h2>
+    <div style="overflow-x:auto;">
+      <table id="rules-table">
+        <thead>
+          <tr>
+            <th>מזהה</th>
+            <th>שם הכלל</th>
+            <th>תחום</th>
+            <th>עדיפות</th>
+            <th>גרסה</th>
+            <th>סטטוס</th>
+            <th>פעולות</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>⚖️ החלטות אחרונות, אישורים ממתינים והסבר דטרמיניסטי</h2>
+      <div id="decisions-box">טוען...</div>
+    </div>
+    <div class="card">
+      <h2>🔍 מבקר החלטות / היסטוריית גרסאות / פלט מחזורים</h2>
+      <pre id="inspector-box">בחר החלטה, כלל או הרץ מחזור כדי לצפות בפירוט המלא.</pre>
+    </div>
+  </div>
+
+  <script>
+    let currentState = null;
+
+    async function loadOverview() {
+      const res = await fetch('/api/control-center/overview?user_id=moshe');
+      const data = await res.json();
+      currentState = data;
+      renderOverview(data);
+    }
+
+    function renderOverview(data) {
+      const p = data.policy || {};
+      const roleBadge = document.getElementById('role-badge');
+      roleBadge.textContent = p.active_role === 'executor' ? 'תפקיד: מבצע (Executor)' : 'תפקיד: מתכנן (Planner)';
+
+      document.getElementById('policy-box').innerHTML = `
+        <div><strong>אוטומציה:</strong> ${p.automation_paused ? '<span class="badge warn">מושהית</span>' : '<span class="badge ok">פעילה</span>'}</div>
+        <div><strong>תקרת דקות יומית:</strong> ${p.max_daily_minutes} דק׳</div>
+        <div><strong>תקרת קושי אתגר:</strong> רמה ${p.max_challenge_difficulty}</div>
+        <div><strong>אישורים ממתינים:</strong> <span class="badge ${(data.pending_approvals || []).length ? 'warn' : 'ok'}">${(data.pending_approvals || []).length}</span></div>
+        <div style="margin-top:8px;">
+          <button class="secondary" onclick="toggleAutomation(${!p.automation_paused})">
+            ${p.automation_paused ? 'חדש אוטומציה' : 'השהה אוטומציה'}
+          </button>
+        </div>
+      `;
+
+      const frogs = data.frogs || {};
+      const frogsList = (frogs.frogs || []).slice(0, 4).map(f =>
+        `<li><strong>${f.name}</strong> (${f.frog_type === 'ongoing' ? 'מתמשכת' : 'חד-פעמית'}, התנגדות ${f.resistance_level}/10)</li>`
+      ).join('');
+      document.getElementById('frogs-box').innerHTML = `
+        <div><strong>צפרדעים פעילות במאגר:</strong>
+          <span class="badge ${frogs.replenishment_needed ? 'warn' : 'ok'}">${frogs.active_count ?? 0} / ${frogs.minimum_required ?? 4}</span>
+        </div>
+        <ul style="margin:8px 0; padding-right:18px; font-size:0.86rem;">${frogsList || '<li>אין צפרדעים פעילות כרגע</li>'}</ul>
+      `;
+
+      const routines = data.routines || {};
+      const prep = data.prep_protocol || {};
+      document.getElementById('routines-box').innerHTML = `
+        <div><strong>הרגלים פעילים:</strong> ${routines.count ?? 0}</div>
+        <div><strong>פרוטוקול הכנה (6 שלבים):</strong> ${prep.breathing_seconds ?? 45} שניות נשימה</div>
+        <div style="font-size:0.83rem; color:var(--muted); margin-top:4px;">פתיח נעים מוגבל ל-${prep.pleasant_starter_max_seconds ?? 45} שניות (למניעת דחיינות)</div>
+      `;
+
+      const gd = data.growth_domains || {};
+      const coreCount = (gd.core_domains || []).length;
+      const enrichCount = (gd.enrichment_domains || []).length;
+      document.getElementById('growth-box').innerHTML = `
+        <div><strong>תחומי ליבה (משקל 10):</strong> ${coreCount} (מנטלי, פיזי, AI)</div>
+        <div><strong>תחומי העשרה (משקל 4):</strong> ${enrichCount}</div>
+        <div><strong>כיסוי קוגניטיבי ע"י AI:</strong> <span class="badge ${gd.cognitive_covered_by_ai ? 'ok' : 'warn'}">${gd.cognitive_covered_by_ai ? 'פעיל' : 'רגיל'}</span></div>
+      `;
+
+      const ch = data.challenges || {};
+      const play = data.playful_engagement || {};
+      document.getElementById('challenges-box').innerHTML = `
+        <div><strong>אתגרים פעילים:</strong> ${ch.count ?? 0}</div>
+        <div><strong>ניקוד משחקיות אישי:</strong> <span class="badge ok">${play.total_playful_points ?? 0} נק׳ (שלב ${play.stage_level ?? 1})</span></div>
+        <div style="font-size:0.8rem; color:var(--muted); margin-top:4px;">ללא קנסות (${play.penalties_count ?? 0}) ומופרד לחלוטין ממדדי Assessment.</div>
+      `;
+
+      const ma = data.mental_progress_assessment || {};
+      const dq = ma.data_quantity || {};
+      document.getElementById('mental-box').innerHTML = `
+        <div><strong>אירועים מתועדים:</strong> ${dq.total_events ?? 0} (מינימום למגמה: ${dq.minimum_events_required ?? 5})</div>
+        <div><strong>ניצחונות שקטים (Silent Wins):</strong> <span class="badge ok">${dq.silent_wins_count ?? 0}</span></div>
+        <div><strong>סטטוס מגמה:</strong> <span class="badge ${ma.sufficient_data ? 'ok' : 'warn'}">${ma.trend_status ?? 'insufficient_data'}</span></div>
+        <div style="font-size:0.78rem; color:var(--muted); margin-top:4px;">${ma.non_diagnostic_disclaimer || ''}</div>
+      `;
+
+      const ai = data.ai_usage || {};
+      document.getElementById('ai-box').innerHTML = `
+        <div><strong>מעקפים דטרמיניסטיים (0 טוקנים):</strong> <span class="badge ok">${ai.deterministic_bypass_count ?? 0}</span></div>
+        <div><strong>קריאות LLM:</strong> ${ai.llm_call_count ?? 0} ($${ai.llm_cost_usd ?? 0})</div>
+        <div><strong>קריאות STT/TTS (קול נפרד):</strong> ${ai.speech_stt_tts_call_count ?? 0} ($${ai.speech_stt_tts_cost_usd ?? 0})</div>
+      `;
+
+      const svcs = data.connected_services || {};
+      const tc = data.task_commander || {};
+      document.getElementById('services-box').innerHTML = `
+        <div style="margin-bottom:6px;"><strong>TaskCommander:</strong> ${(tc.today || []).length} להיום | ${tc.done_instances || 0} הושלמו</div>
+      ` + Object.entries(svcs).map(([k, v]) =>
+        `<div><strong>${k}:</strong> <span class="badge ${v.connected ? 'ok' : 'warn'}">${v.connected ? 'מחובר' : 'לא זמין'}</span></div>`
+      ).join('');
+
+      const tbody = document.querySelector('#rules-table tbody');
+      tbody.innerHTML = (data.rules_catalog || []).map(r => `
+        <tr>
+          <td><code>${r.rule_id}</code></td>
+          <td>${r.name}</td>
+          <td>${r.domain}</td>
+          <td>${r.priority}</td>
+          <td>v${r.version}</td>
+          <td><span class="badge ${r.enabled ? 'ok' : 'danger'}">${r.enabled ? 'פעיל' : 'מושבת'}</span></td>
+          <td style="display:flex; gap:6px;">
+            <button class="secondary" onclick="toggleRule('${r.rule_id}', ${!r.enabled})">${r.enabled ? 'השבת' : 'הפעל'}</button>
+            <button class="secondary" onclick="showRuleVersions('${r.rule_id}')">גרסאות</button>
+          </td>
+        </tr>
+      `).join('');
+
+      const decisions = data.recent_decisions || [];
+      document.getElementById('decisions-box').innerHTML = decisions.length === 0
+        ? '<div style="color:var(--muted);">אין החלטות רשומות עדיין.</div>'
+        : decisions.slice(0, 8).map(d => `
+          <div style="padding:8px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <strong>${d.event_type}</strong> → <span class="badge">${d.final_decision}</span>
+              <div style="font-size:0.8rem; color:var(--muted);">${d.explanation}</div>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button class="secondary" onclick="explainDecision('${d.decision_id}')">הסבר</button>
+              <button class="secondary" onclick="cancelDecision('${d.decision_id}')">בטל</button>
+            </div>
+          </div>
+        `).join('');
+    }
+
+    async function runCycle(cycleName) {
+      const res = await fetch(`/api/cycles/${cycleName}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe'})
+      });
+      const data = await res.json();
+      document.getElementById('inspector-box').textContent = (data.telegram_summary_he || '') + '\n\n' + JSON.stringify(data, null, 2);
+      await loadOverview();
+    }
+
+    async function sendQuickCapture() {
+      const input = document.getElementById('quick-input');
+      if (!input.value.trim()) return;
+      const res = await fetch('/api/cycles/quick-capture', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', text: input.value, channel: 'voice', speech_seconds: 6, tts_seconds: 4})
+      });
+      const data = await res.json();
+      input.value = '';
+      document.getElementById('inspector-box').textContent = (data.voice_short_reply_he || '') + '\n\n' + JSON.stringify(data, null, 2);
+      await loadOverview();
+    }
+
+    async function toggleRole() {
+      const nextRole = (currentState?.policy?.active_role === 'executor') ? 'planner' : 'executor';
+      await fetch('/api/control-center/policy', {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', active_role: nextRole})
+      });
+      await loadOverview();
+    }
+
+    async function toggleAutomation(paused) {
+      await fetch('/api/control-center/policy', {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', automation_paused: paused})
+      });
+      await loadOverview();
+    }
+
+    async function toggleRule(ruleId, enabled) {
+      await fetch(`/api/control-center/rules/${encodeURIComponent(ruleId)}`, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', enabled, change_note: enabled ? 'Enabled in UI' : 'Disabled in UI'})
+      });
+      await loadOverview();
+    }
+
+    async function showRuleVersions(ruleId) {
+      const res = await fetch(`/api/control-center/rules/${encodeURIComponent(ruleId)}/versions`);
+      const data = await res.json();
+      document.getElementById('inspector-box').textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function explainDecision(decisionId) {
+      const res = await fetch(`/api/control-center/decisions/${encodeURIComponent(decisionId)}/explain`);
+      const data = await res.json();
+      document.getElementById('inspector-box').textContent = data.readable_explanation_he + '\n\n' + JSON.stringify(data, null, 2);
+    }
+
+    async function cancelDecision(decisionId) {
+      const res = await fetch(`/api/control-center/decisions/${encodeURIComponent(decisionId)}/cancel`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', reason: 'Cancelled via Control Center UI'})
+      });
+      const data = await res.json();
+      document.getElementById('inspector-box').textContent = JSON.stringify(data, null, 2);
+      await loadOverview();
+    }
+
+    loadOverview();
+  </script>
+</body>
+</html>

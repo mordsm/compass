@@ -8,6 +8,7 @@ import webbrowser
 
 from app.config import get_settings
 from app.services.http_adapter import get_json, post_json
+from app.services.local_agent_launcher import ensure_self_manage_running
 
 
 class SelfManagementAdapter:
@@ -22,6 +23,7 @@ class SelfManagementAdapter:
         return urls
 
     def open_ui(self, plan_item_id: int | str | None = None) -> dict[str, Any]:
+        ensure_self_manage_running()
         urls = self.ui_urls(plan_item_id)
         target = urls.get("session") or urls["today"]
         warnings = []
@@ -70,23 +72,47 @@ class SelfManagementAdapter:
             return {"opened": False, "url": target, "urls": urls, "warning": "; ".join(warnings)}
 
     def list_domains(self) -> dict[str, Any]:
+        ensure_self_manage_running()
         return get_json(get_settings().self_manage_base_url, "/api/domains")
 
     def list_exercises(self) -> dict[str, Any]:
+        ensure_self_manage_running()
         return get_json(get_settings().self_manage_base_url, "/api/exercises", timeout=3.0)
 
     def list_cardio_candidates(self) -> dict[str, Any]:
+        ensure_self_manage_running()
         return get_json(get_settings().self_manage_base_url, "/api/exercises/cardio-candidates", timeout=3.0)
 
     def get_today(self) -> dict[str, Any]:
+        ensure_self_manage_running()
         return get_json(get_settings().self_manage_base_url, "/api/today")
 
     def get_hourly_reminder(self) -> dict[str, Any]:
+        ensure_self_manage_running()
         return get_json(get_settings().self_manage_base_url, "/api/hourly-reminder")
 
     def generate_today(self, profile: dict[str, Any] | None = None, overwrite: bool = True) -> dict[str, Any]:
+        ensure_self_manage_running()
         return post_json(
             get_settings().self_manage_base_url,
             "/api/today/generate",
             {"overwrite": overwrite, "profile": profile},
+        )
+
+    def log_session(
+        self,
+        plan_item_id: int | str,
+        completed: bool = True,
+        minutes: int = 10,
+        notes: str | None = None,
+    ) -> dict[str, Any]:
+        ensure_self_manage_running()
+        return post_json(
+            get_settings().self_manage_base_url,
+            f"/api/session/{plan_item_id}/log",
+            {
+                "completed": completed,
+                "minutes": minutes,
+                "notes": notes or "Logged via Accountability Coach",
+            },
         )

@@ -312,6 +312,105 @@ class RulesGatewayTests(unittest.TestCase):
 
         self.assertEqual(approvals, 0)
 
+    def test_assessment_workflow_executes_mental_self_manage_after_approval(self):
+        from app.database import init_db
+        from app.routers.rules import run_assessment_finding_rules_workflow
+        from app.schemas.rules import AssessmentFindingWorkflowRequest
+        from app.services.self_management import SelfManagementAdapter
+
+        generate_calls = []
+        original_today = SelfManagementAdapter.get_today
+        original_reminder = SelfManagementAdapter.get_hourly_reminder
+        original_generate = SelfManagementAdapter.generate_today
+        original_domains = SelfManagementAdapter.list_domains
+        original_open = SelfManagementAdapter.open_ui
+        original_exercises = SelfManagementAdapter.list_exercises
+        SelfManagementAdapter.list_domains = lambda _self: {"connected": True, "result": []}
+        SelfManagementAdapter.list_exercises = lambda _self: {
+            "connected": True,
+            "result": [
+                {
+                    "kind": "mental",
+                    "domain": {"slug": "stress_regulation"},
+                    "is_active": True,
+                    "measurement": "before/after stress",
+                }
+            ],
+        }
+        SelfManagementAdapter.get_today = lambda _self: {"connected": True, "result": {"items": []}}
+        SelfManagementAdapter.get_hourly_reminder = lambda _self: {"connected": True, "result": {"enabled": True}}
+
+        def generate_today(_self, profile=None, overwrite=True):
+            generate_calls.append({"profile": profile, "overwrite": overwrite})
+            return {
+                "connected": True,
+                "result": {
+                    "plan_id": 88,
+                    "plan_date": "2026-08-11",
+                    "items": [
+                        {
+                            "kind": "mental",
+                            "domain": {"slug": "stress_regulation", "label": "Stress Regulation"},
+                            "plan_item_id": 456,
+                            "exercise": {
+                                "id": 21,
+                                "slug": "if_then_plan",
+                                "label": "If-Then plan",
+                                "minutes_default": 6,
+                                "how_to": ["choose trigger", "choose response"],
+                                "measurement": "before/after stress",
+                            },
+                        }
+                    ],
+                },
+            }
+
+        SelfManagementAdapter.generate_today = generate_today
+        SelfManagementAdapter.open_ui = lambda _self, plan_item_id=None: {
+            "opened": True,
+            "url": f"http://127.0.0.1:8001/static/session.html?plan_item_id={plan_item_id}",
+            "open_method": "test.open_ui",
+            "urls": {
+                "today": "http://127.0.0.1:8001/static/index.html",
+                "session": f"http://127.0.0.1:8001/static/session.html?plan_item_id={plan_item_id}",
+            },
+        }
+        self.addCleanup(setattr, SelfManagementAdapter, "list_domains", original_domains)
+        self.addCleanup(setattr, SelfManagementAdapter, "list_exercises", original_exercises)
+        self.addCleanup(setattr, SelfManagementAdapter, "get_today", original_today)
+        self.addCleanup(setattr, SelfManagementAdapter, "get_hourly_reminder", original_reminder)
+        self.addCleanup(setattr, SelfManagementAdapter, "generate_today", original_generate)
+        self.addCleanup(setattr, SelfManagementAdapter, "open_ui", original_open)
+
+        init_db()
+        request = AssessmentFindingWorkflowRequest(
+            user_id="moshe",
+            event_id="evt_assessment_mental_101",
+            occurred_at=datetime(2026, 8, 11, 10, 0, tzinfo=timezone.utc),
+            idempotency_key="workflow-assessment-mental-101",
+            domain="mental",
+            finding_type="self_regulation_gap",
+            severity="medium",
+            confidence=0.86,
+            current_state="strained",
+            evidence=["low sense of control under load"],
+            recommended_capability="mental_training",
+            dry_run=False,
+            execute_self_manage=True,
+            approval_confirmed=True,
+            open_ui=True,
+        )
+
+        result = run_assessment_finding_rules_workflow(request)
+
+        self.assertEqual(result["status"], "self_manage_executed")
+        self.assertEqual(generate_calls[0]["profile"]["excluded_kinds"], ["cognitive", "physical"])
+        self.assertEqual(result["executed_actions"][0]["purpose"], "create_mental_self_manage_plan")
+        self.assertEqual(result["self_manage_plan"]["selected_plan_item_id"], 456)
+        self.assertEqual(result["self_manage_plan"]["selected_exercise"]["slug"], "if_then_plan")
+        self.assertEqual(result["ui_url"], "http://127.0.0.1:8001/static/session.html?plan_item_id=456")
+        self.assertTrue(result["ui_opened"])
+
     def test_assessment_workflow_reports_missing_cardio_content(self):
         from app.database import init_db
         from app.routers.rules import run_assessment_finding_rules_workflow

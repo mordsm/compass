@@ -3,6 +3,10 @@
 Compass is the central backend gateway for a Custom GPT that helps with daily planning,
 tasks, decisions, personal context, and agent orchestration.
 
+For the FamilyBiz household-finance product outline, see
+[`docs/familybiz-product-outline.md`](docs/familybiz-product-outline.md).
+The FamilyBiz PWA prototype is served from `/familybiz/` when Compass is running.
+
 The GPT should connect only to Compass through GPT Actions. Compass then coordinates:
 
 - `rules_engine` as the automation and approval backbone.
@@ -36,6 +40,9 @@ Every write action accepts `idempotency_key` so GPT retries do not create duplic
 ## Run Locally
 
 ```powershell
+cd C:\workspace
+docker compose up -d compass-db
+cd C:\workspace\compass
 uv sync
 Copy-Item .env.example .env
 uv run uvicorn app.main:app --reload --port 8000
@@ -46,6 +53,22 @@ Local URL:
 ```text
 http://localhost:8000
 ```
+
+FamilyBiz prototype:
+
+```text
+http://localhost:8000/familybiz/
+```
+
+On Android, open the FamilyBiz URL in Chrome and choose "Add to Home screen".
+
+For a temporary remote Android URL:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\scripts\start-familybiz-remote.ps1
+```
+
+Use the printed Cloudflare URL with `/familybiz/` at the end.
 
 To start Compass and a temporary Cloudflare tunnel together:
 
@@ -90,14 +113,13 @@ Set these production environment variables in the host:
 
 ```text
 COMPASS_ACTIONS_API_KEY=<strong secret token>
-COMPASS_DATABASE_PATH=/data/compass.db
+COMPASS_DATABASE_URL=postgresql://compass:compass@compass-db:5432/compass
 COMPASS_PUBLIC_BASE_URL=https://your-compass-app.example.com
 COMPASS_USER_ID=moshe
 ```
 
-If you keep SQLite, attach persistent storage at `/data`. Without persistent
-storage, approvals, tasks, plans, and conversation history can disappear when the
-container restarts.
+Use Postgres for persistent storage. SQLite remains available only for local tests
+or emergency single-file runs by setting `COMPASS_DATABASE_URL=""`.
 
 ## GitHub Deploy + Cloudflare Tunnel
 
@@ -156,7 +178,7 @@ servers:
 
 ```text
 COMPASS_ACTIONS_API_KEY=change-me
-COMPASS_DATABASE_PATH=data/compass.db
+COMPASS_DATABASE_URL=postgresql://compass:compass@127.0.0.1:55436/compass
 COMPASS_PUBLIC_BASE_URL=https://your-public-domain.example
 COMPASS_USER_ID=moshe
 COMPASS_SELF_MANAGE_BASE_URL=http://127.0.0.1:8001
@@ -171,6 +193,15 @@ COMPASS_ADMINISTRATIVE_BASE_URL=http://127.0.0.1:8007
 COMPASS_SELF_TRAINER_BASE_URL=http://127.0.0.1:8008
 COMPASS_AUTOSTART_LOCAL_AGENTS=true
 COMPASS_AUTOSTART_WAIT_SECONDS=12
+```
+
+To migrate an existing local SQLite file into Postgres:
+
+```powershell
+cd C:\workspace
+docker compose up -d compass-db
+cd C:\workspace\compass
+uv run python scripts\migrate-sqlite-to-postgres.py --sqlite-path data\compass.db
 ```
 
 ## Local Agent Ports

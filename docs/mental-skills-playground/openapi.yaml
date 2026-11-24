@@ -1,0 +1,535 @@
+openapi: 3.1.0
+info:
+  title: Mental Skills Playground GPT Actions
+  version: 0.1.0
+  description: GPT-facing planning schema for Mental Skills Playground through Compass.
+servers:
+  - url: https://harrison-loan-labels-processing.trycloudflare.com
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: false
+        error:
+          type: string
+    Skill:
+      type: object
+      properties:
+        skill_id:
+          type: string
+        display_name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+    SessionEvent:
+      type: object
+      required: [idempotency_key, event_type, occurred_at]
+      properties:
+        idempotency_key:
+          type: string
+        event_type:
+          type: string
+          enum: [baseline_response, reflection, micro_skill, retest_response, debrief, user_stop, cooldown]
+        occurred_at:
+          type: string
+          format: date-time
+        payload:
+          type: object
+          properties:
+            note:
+              type: string
+          additionalProperties: true
+    UserProfileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        user_id:
+          type: string
+        display_name:
+          type: string
+        timezone:
+          type: string
+        coach_style:
+          type: string
+        identity_method:
+          type: string
+    SkillState:
+      type: object
+      properties:
+        user_id:
+          type: string
+        skill_id:
+          type: string
+        current_training_level:
+          type: integer
+        confidence:
+          type: number
+        sessions_count:
+          type: integer
+        trend:
+          type: string
+        last_trained_at:
+          type: string
+          nullable: true
+        recent_performance:
+          type: array
+          items:
+            type: object
+            properties:
+              safety_state:
+                type: string
+              user_noticed_change:
+                type: boolean
+              difficulty:
+                type: integer
+            additionalProperties: true
+        preferred_exercises:
+          type: array
+          items:
+            type: string
+        ineffective_exercises:
+          type: array
+          items:
+            type: string
+        known_triggers:
+          type: array
+          items:
+            type: string
+        effective_regulation_methods:
+          type: array
+          items:
+            type: string
+    TrainingSession:
+      type: object
+      properties:
+        success:
+          type: boolean
+        session_id:
+          type: string
+        user_id:
+          type: string
+        skill_id:
+          type: string
+        exercise_id:
+          type: string
+          nullable: true
+        mode:
+          type: string
+        difficulty:
+          type: integer
+        status:
+          type: string
+        started_at:
+          type: string
+        completed_at:
+          type: string
+          nullable: true
+        summary:
+          type: string
+        safety_state:
+          type: string
+        already_existed:
+          type: boolean
+    SkillHistoryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        user_id:
+          type: string
+        skill_id:
+          type: string
+        state:
+          $ref: "#/components/schemas/SkillState"
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrainingSession"
+    TrainingRecommendationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        user_id:
+          type: string
+        recommended_skill_id:
+          type: string
+        recommended_exercise_id:
+          type: string
+          nullable: true
+        difficulty:
+          type: integer
+        reason:
+          type: string
+    EventResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        event_id:
+          type: string
+        session_id:
+          type: string
+        safety_state:
+          type: string
+        already_existed:
+          type: boolean
+    SaveObservationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        observation_id:
+          type: string
+        already_existed:
+          type: boolean
+    Pattern:
+      type: object
+      properties:
+        skill_id:
+          type: string
+        pattern:
+          type: string
+        evidence_level:
+          type: string
+    PatternsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        user_id:
+          type: string
+        patterns:
+          type: array
+          items:
+            $ref: "#/components/schemas/Pattern"
+    SaveReflectionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        reflection_id:
+          type: string
+        already_existed:
+          type: boolean
+    ProgressResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        user_id:
+          type: string
+        skills:
+          type: array
+          items:
+            $ref: "#/components/schemas/SkillState"
+security:
+  - bearerAuth: []
+paths:
+  /api/msp/user/context:
+    get:
+      operationId: getMentalSkillsUserContext
+      summary: Load compact current context for the training coach.
+      x-openai-isConsequential: false
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Current context.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user_id:
+                    type: string
+                  current_focus:
+                    type: string
+                  recommended_skill_id:
+                    type: string
+                  recent_summary:
+                    type: string
+                  safety_notes:
+                    type: array
+                    items:
+                      type: string
+  /api/msp/user/profile:
+    get:
+      operationId: getMentalSkillsUserProfile
+      summary: Load user profile and coach preferences.
+      x-openai-isConsequential: false
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User profile.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfileResponse"
+  /api/msp/skills:
+    get:
+      operationId: listMentalSkills
+      summary: List available training skills.
+      x-openai-isConsequential: false
+      responses:
+        "200":
+          description: Skills.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  skills:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Skill"
+  /api/msp/skills/{skill_id}/history:
+    get:
+      operationId: getMentalSkillHistory
+      summary: Load focused history for one skill.
+      x-openai-isConsequential: false
+      parameters:
+        - name: skill_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Skill history.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SkillHistoryResponse"
+  /api/msp/training/recommendation:
+    get:
+      operationId: getMentalTrainingRecommendation
+      summary: Get deterministic next training recommendation.
+      x-openai-isConsequential: false
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Training recommendation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrainingRecommendationResponse"
+  /api/msp/sessions/start:
+    post:
+      operationId: startMentalTrainingSession
+      summary: Start a mental skills training session.
+      x-openai-isConsequential: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idempotency_key, user_id, skill_id]
+              properties:
+                idempotency_key:
+                  type: string
+                user_id:
+                  type: string
+                skill_id:
+                  type: string
+                exercise_id:
+                  type: string
+                mode:
+                  type: string
+                  enum: [TRAINING_MODE, FIELD_MODE]
+                  default: TRAINING_MODE
+                difficulty:
+                  type: integer
+                  minimum: 1
+                  maximum: 2
+      responses:
+        "200":
+          description: Session started.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrainingSession"
+  /api/msp/sessions/{session_id}/event:
+    post:
+      operationId: recordMentalTrainingSessionEvent
+      summary: Record a training session event.
+      x-openai-isConsequential: true
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionEvent"
+      responses:
+        "200":
+          description: Event recorded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventResponse"
+  /api/msp/sessions/{session_id}/complete:
+    post:
+      operationId: completeMentalTrainingSession
+      summary: Complete a training session and update training indicators.
+      x-openai-isConsequential: true
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idempotency_key, summary]
+              properties:
+                idempotency_key:
+                  type: string
+                summary:
+                  type: string
+                user_noticed_change:
+                  type: boolean
+                safety_state:
+                  type: string
+      responses:
+        "200":
+          description: Session completed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrainingSession"
+  /api/msp/observations:
+    post:
+      operationId: saveMentalSkillsObservation
+      summary: Save a real-world observation.
+      x-openai-isConsequential: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idempotency_key, user_id, content]
+              properties:
+                idempotency_key:
+                  type: string
+                user_id:
+                  type: string
+                skill_id:
+                  type: string
+                content:
+                  type: string
+      responses:
+        "200":
+          description: Observation saved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SaveObservationResponse"
+  /api/msp/patterns:
+    get:
+      operationId: getMentalSkillsPatterns
+      summary: Return discovered training patterns.
+      x-openai-isConsequential: false
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Patterns.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatternsResponse"
+  /api/msp/reflection:
+    post:
+      operationId: saveMentalSkillsReflection
+      summary: Save a user reflection.
+      x-openai-isConsequential: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idempotency_key, user_id, content]
+              properties:
+                idempotency_key:
+                  type: string
+                user_id:
+                  type: string
+                session_id:
+                  type: string
+                skill_id:
+                  type: string
+                content:
+                  type: string
+      responses:
+        "200":
+          description: Reflection saved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SaveReflectionResponse"
+  /api/msp/progress:
+    get:
+      operationId: getMentalSkillsProgress
+      summary: Return training progress indicators.
+      x-openai-isConsequential: false
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Progress.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgressResponse"

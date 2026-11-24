@@ -26,6 +26,14 @@ NON_CARDIO_PHYSICAL_DOMAINS = [
     "strength",
 ]
 
+MENTAL_FINDING_TYPES = {
+    "mental_skill_gap",
+    "self_regulation_gap",
+    "functional_resilience_gap",
+    "stress_regulation_gap",
+    "sense_of_control_gap",
+}
+
 
 def _physical_domains_from_self_manage(response: dict) -> list[str]:
     if not response.get("connected"):
@@ -50,6 +58,19 @@ def _assessment_finding_self_manage_profile(
     difficulty = 4 if request.current_state == "low" else 6
     if request.severity in {"high", "critical"}:
         difficulty = min(difficulty, 3)
+
+    if _is_mental_self_manage_request(request):
+        profile = {
+            "difficulty_level": difficulty,
+            "excluded_kinds": ["cognitive", "physical"],
+            "excluded_domains": [],
+            "required_measurement_terms": [],
+            "reading_mode": "steps",
+            "language": "he",
+        }
+        profile.update(request.self_manage_profile)
+        return profile
+
     excluded_domains = sorted(set(physical_domains or NON_CARDIO_PHYSICAL_DOMAINS))
 
     profile = {
@@ -64,21 +85,59 @@ def _assessment_finding_self_manage_profile(
     return profile
 
 
-def _self_manage_plan_summary(response: dict, self_manage: SelfManagementAdapter) -> dict:
+def _is_mental_self_manage_request(request: AssessmentFindingWorkflowRequest) -> bool:
+    return (
+        request.domain.lower() == "mental"
+        or request.finding_type in MENTAL_FINDING_TYPES
+        or request.recommended_capability in {"mental_training", "mental_practice", "self_regulation_practice"}
+    )
+
+
+def _self_manage_target(request: AssessmentFindingWorkflowRequest) -> dict:
+    if _is_mental_self_manage_request(request):
+        return {
+            "name": "mental",
+            "candidate_kinds": ["mental"],
+            "selected_kinds": ["mental"],
+            "missing_capability": "mental_self_regulation_exercise",
+            "purpose": "create_mental_self_manage_plan",
+            "message": "No active mental exercise was found in self_manage.",
+            "recommended_next_action": "Add a mental exercise to self_manage, or explicitly approve importing one from a trusted source.",
+            "suggested_search_query": "short self regulation mental skills exercise implementation intention reset instructions",
+        }
+    return {
+        "name": "cardio",
+        "candidate_kinds": ["physical"],
+        "selected_kinds": ["physical"],
+        "selected_domain_slug": "cardio",
+        "missing_capability": "aerobic_cardio_exercise",
+        "purpose": "create_aerobic_cardio_plan",
+        "message": "No active aerobic cardio exercise was found in self_manage.",
+        "recommended_next_action": "Add a cardio exercise to self_manage, or explicitly approve importing one from a trusted source.",
+        "suggested_search_query": "beginner low intensity aerobic exercise RPE walking in place instructions",
+    }
+
+
+def _self_manage_plan_summary(response: dict, self_manage: SelfManagementAdapter, target: dict) -> dict:
     result = response.get("result") if isinstance(response, dict) else None
     if not isinstance(result, dict):
         return {}
 
     items = result.get("items") if isinstance(result.get("items"), list) else []
-    cardio_items = [
+    selected_items = [
         item
         for item in items
         if isinstance(item, dict)
-        and item.get("kind") == "physical"
-        and isinstance(item.get("domain"), dict)
-        and item["domain"].get("slug") == "cardio"
+        and item.get("kind") in target["selected_kinds"]
+        and (
+            not target.get("selected_domain_slug")
+            or (
+                isinstance(item.get("domain"), dict)
+                and item["domain"].get("slug") == target["selected_domain_slug"]
+            )
+        )
     ]
-    selected_item = cardio_items[0] if cardio_items else (items[0] if items else None)
+    selected_item = selected_items[0] if selected_items else (items[0] if items else None)
     if not isinstance(selected_item, dict):
         return {
             "plan_id": result.get("plan_id"),
@@ -136,19 +195,35 @@ def _cardio_exercises_from_self_manage(response: dict) -> list[dict]:
     return matches
 
 
-def _missing_cardio_content_plan(self_manage: SelfManagementAdapter) -> dict:
+def _target_exercises_from_self_manage(response: dict, target: dict) -> list[dict]:
+    if target["name"] == "cardio":
+        return _cardio_exercises_from_self_manage(response)
+    if not response.get("connected"):
+        return []
+    exercises = response.get("result")
+    if not isinstance(exercises, list):
+        return []
+    return [
+        exercise
+        for exercise in exercises
+        if isinstance(exercise, dict)
+        and exercise.get("kind") in target["candidate_kinds"]
+        and exercise.get("is_active", True)
+    ]
+
+
+def _missing_content_plan(self_manage: SelfManagementAdapter, target: dict) -> dict:
     urls = self_manage.ui_urls()
     return {
         "content_needed": True,
-        "missing_capability": "aerobic_cardio_exercise",
+        "missing_capability": target["missing_capability"],
         "required_criteria": {
-            "kind": "physical",
-            "domain": "cardio",
-            "measurement_contains": "RPE",
+            "kind": target["candidate_kinds"],
+            "domain": target.get("selected_domain_slug", "any"),
         },
-        "message": "No active aerobic cardio exercise was found in self_manage.",
-        "recommended_next_action": "Add a cardio exercise to self_manage, or explicitly approve importing one from a trusted source.",
-        "suggested_search_query": "beginner low intensity aerobic exercise RPE walking in place instructions",
+        "message": target["message"],
+        "recommended_next_action": target["recommended_next_action"],
+        "suggested_search_query": target["suggested_search_query"],
         "today_url": urls["today"],
         "profile_url": urls.get("profile"),
     }
@@ -317,28 +392,29 @@ def run_assessment_finding_rules_workflow(request: AssessmentFindingWorkflowRequ
             warnings.append("rules_engine requires approval before creating an aerobic self_manage plan")
 
     if can_execute_self_manage:
-        exercises_result = self_manage.list_cardio_candidates()
+        target = _self_manage_target(request)
+        exercises_result = self_manage.list_cardio_candidates() if target["name"] == "cardio" else self_manage.list_exercises()
         if isinstance(exercises_result, dict) and exercises_result.get("warning"):
             warnings.append(str(exercises_result["warning"]))
-        available_cardio_exercises = _cardio_exercises_from_self_manage(exercises_result)
-        if not available_cardio_exercises:
-            self_manage_plan = _missing_cardio_content_plan(self_manage)
+        available_exercises = _target_exercises_from_self_manage(exercises_result, target)
+        if not available_exercises:
+            self_manage_plan = _missing_content_plan(self_manage, target)
             ui_url = self_manage_plan.get("today_url")
             ui_urls = self_manage.ui_urls()
-            warnings.append("No active self_manage cardio exercise matched the required RPE criteria")
+            warnings.append(self_manage_plan["message"])
             status = "self_manage_content_needed"
         else:
             generated_plan = self_manage.generate_today(profile=self_manage_profile, overwrite=True)
-            self_manage_plan = _self_manage_plan_summary(generated_plan, self_manage)
+            self_manage_plan = _self_manage_plan_summary(generated_plan, self_manage, target)
             ui_url = self_manage_plan.get("session_url") or self_manage.ui_urls()["today"]
             ui_urls = self_manage.ui_urls(self_manage_plan.get("selected_plan_item_id"))
             executed_actions.append(
                 {
                     "action_type": "self_manage.generate_today",
                     "component": "self_manage",
-                    "purpose": "create_aerobic_cardio_plan",
+                    "purpose": target["purpose"],
                     "profile": self_manage_profile,
-                    "available_cardio_exercise_count": len(available_cardio_exercises),
+                    "available_exercise_count": len(available_exercises),
                     "result": generated_plan,
                     "plan": self_manage_plan,
                     "ui_url": ui_url,

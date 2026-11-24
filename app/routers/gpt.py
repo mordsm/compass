@@ -208,8 +208,8 @@ def start_gpt_assessment(request: GptAssessmentStartRequest) -> dict:
         "ui_urls": ui_urls,
         "ui_opened": bool(ui_result.get("opened")),
         "user_instruction": (
-            "Open the assessment UI and run one objective check. Start with the Battery page, "
-            "then choose Focus, Energy, or Physical based on the proposed action."
+            f"Open the {request.ui_target} assessment UI and run one objective check. "
+            "Use the returned assessment finding before creating a self_manage exercise."
         ),
         "warning": str(result.get("warning") or ""),
     }

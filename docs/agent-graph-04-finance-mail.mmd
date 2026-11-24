@@ -1,0 +1,28 @@
+flowchart TD
+  FinanceEntry["FinanceEntry<br/>from CompassRouter"]
+  LocalStart{"LocalAgentRunning?<br/>economic_manager port 8005"}
+  Autostart["AutostartLocalAgent<br/>start economic_manager"]
+  EconomicManager["economic_manager<br/>finance memory + imports + reports"]
+  MailManager["mail_manager<br/>Gmail ingest + financial items"]
+  Gmail[(Gmail)]
+  StatementCsv[(Statement CSV)]
+  AuditEnd([AuditEnd<br/>audit + response])
+
+  FinanceEntry -- "economic_manager" --> LocalStart
+  LocalStart -- "no" --> Autostart --> LocalStart
+  LocalStart -- "ready" --> EconomicManager --> AuditEnd
+
+  FinanceEntry -- "mail_manager" --> MailManager --> AuditEnd
+  EconomicManager -- "sync_mail_financial_items" --> MailManager
+  MailManager -- "financial_items" --> EconomicManager
+  MailManager -- "ingest" --> Gmail
+  EconomicManager -- "import_csv / sources" --> StatementCsv
+
+  classDef finance fill:#ffe4e6,stroke:#be123c,color:#0f172a;
+  classDef compass fill:#e0f2fe,stroke:#0369a1,color:#0f172a;
+  classDef external fill:#f1f5f9,stroke:#64748b,stroke-dasharray:4 3,color:#0f172a;
+  classDef terminal fill:#f8fafc,stroke:#334155,stroke-width:2px,color:#0f172a;
+  class FinanceEntry,LocalStart,Autostart compass;
+  class EconomicManager,MailManager finance;
+  class Gmail,StatementCsv external;
+  class AuditEnd terminal;

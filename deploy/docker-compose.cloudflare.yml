@@ -7,11 +7,27 @@ services:
       - path: ../.env
         required: false
     environment:
-      COMPASS_DATABASE_PATH: /data/compass.db
-    volumes:
-      - compass-data:/data
+      COMPASS_DATABASE_URL: postgresql://compass:compass@compass-db:5432/compass
     expose:
       - "8000"
+    depends_on:
+      compass-db:
+        condition: service_healthy
+
+  compass-db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: compass
+      POSTGRES_PASSWORD: compass
+      POSTGRES_DB: compass
+    volumes:
+      - compass-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U compass -d compass"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   cloudflared:
     image: cloudflare/cloudflared:latest
@@ -21,4 +37,4 @@ services:
       - compass
 
 volumes:
-  compass-data:
+  compass-pg:

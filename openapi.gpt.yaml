@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: Small GPT-safe Compass API for status, morning brief, and training memory.
 servers:
-  - url: https://hold-privileges-that-devon.trycloudflare.com
+  - url: https://harrison-loan-labels-processing.trycloudflare.com
 components:
   securitySchemes:
     bearerAuth:
@@ -411,7 +411,7 @@ paths:
                   description: Set true when the user explicitly asks to open the assessment UI.
                 ui_target:
                   type: string
-                  enum: [home, assessments, battery, focus, energy, physical]
+                  enum: [home, assessments, battery, focus, energy, mental, physical]
                   default: battery
                 context:
                   type: object
@@ -467,7 +467,7 @@ paths:
   /api/rules/workflows/assessment-finding:
     post:
       operationId: runAssessmentFindingRulesWorkflow
-      summary: Evaluate an assessment finding through rules_engine and optionally create a cardio-focused self_manage plan.
+      summary: Evaluate an assessment finding through rules_engine and optionally create a targeted self_manage exercise plan.
       x-openai-isConsequential: true
       requestBody:
         required: true
@@ -489,10 +489,10 @@ paths:
                   type: string
                 domain:
                   type: string
-                  default: fitness
+                  default: mental
                 finding_type:
                   type: string
-                  default: aerobic_fitness_gap
+                  default: self_regulation_gap
                 severity:
                   type: string
                   enum: [low, medium, high, critical]
@@ -508,7 +508,7 @@ paths:
                     type: string
                 recommended_capability:
                   type: string
-                  default: fitness_planning
+                  default: mental_training
                 dry_run:
                   type: boolean
                   default: true

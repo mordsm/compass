@@ -1,0 +1,509 @@
+{
+  "revision": 1,
+  "meta_window": {
+    "health": "amber",
+    "open_alert_count": 3,
+    "meta_tasks": [
+      {
+        "id": "task-alert-1",
+        "title": "Compass morning brief needs a fresh assessment pass",
+        "priority": "urgent",
+        "status": "open",
+        "show_in_meta": true,
+        "owning_project_ref": "compass"
+      },
+      {
+        "id": "task-alert-2",
+        "title": "Economic manager needs the latest statement CSV sync",
+        "priority": "high",
+        "status": "open",
+        "show_in_meta": true,
+        "owning_project_ref": "economic_manager"
+      },
+      {
+        "id": "task-alert-3",
+        "title": "Self-manage exercise catalog needs a new approval review",
+        "priority": "high",
+        "status": "open",
+        "show_in_meta": true,
+        "owning_project_ref": "self_manage"
+      },
+      {
+        "id": "task-alert-4",
+        "title": "Mail manager queue contains a blocked inbox-derived item",
+        "priority": "urgent",
+        "status": "open",
+        "show_in_meta": true,
+        "owning_project_ref": "mail_manager"
+      }
+    ],
+    "graph": {
+      "nodes": [
+        {"id": "node-compass", "label": "Compass", "kind": "project", "project_ref": "compass", "group": "hub"},
+        {"id": "node-self-manage", "label": "self_manage", "kind": "project", "project_ref": "self_manage", "group": "wellbeing"},
+        {"id": "node-anchor", "label": "anchor", "kind": "project", "project_ref": "anchor", "group": "conversation"},
+        {"id": "node-economic-manager", "label": "economic_manager", "kind": "project", "project_ref": "economic_manager", "group": "finance"},
+        {"id": "node-mail-manager", "label": "mail_manager", "kind": "project", "project_ref": "mail_manager", "group": "finance"},
+        {"id": "node-rules-engine", "label": "rules_engine", "kind": "project", "project_ref": "rules_engine", "group": "automation"},
+        {"id": "node-task-commander", "label": "TaskCommander", "kind": "project", "project_ref": "task_commander", "group": "operations"},
+        {"id": "node-admin-agent", "label": "administrative_agent", "kind": "project", "project_ref": "administrative_agent", "group": "operations"},
+        {"id": "node-self-trainer", "label": "self_trainer", "kind": "project", "project_ref": "self_trainer", "group": "learning"},
+        {"id": "node-personal-assessment", "label": "personal_Assessment", "kind": "project", "project_ref": "personal_assessment", "group": "learning"},
+        {"id": "node-gmail", "label": "Gmail", "kind": "external", "group": "external"},
+        {"id": "node-bank-csv", "label": "Statement.CSV", "kind": "external", "group": "external"},
+        {"id": "node-calendar", "label": "Calendar", "kind": "external", "group": "external"},
+        {"id": "node-government", "label": "Government portal", "kind": "external", "group": "external"}
+      ],
+      "edges": [
+        {"id": "edge-1", "source": "node-compass", "target": "node-self-manage", "label": "Context JSON", "payload_format": "application/json", "protocol": "HTTPS", "channel_type": "gpt_action", "status": "healthy", "last_success_at_utc": "2026-08-20T08:15:00Z"},
+        {"id": "edge-2", "source": "node-compass", "target": "node-economic-manager", "label": "REST JSON", "payload_format": "application/json", "protocol": "HTTPS", "channel_type": "service-call", "status": "healthy", "last_success_at_utc": "2026-08-20T09:02:00Z"},
+        {"id": "edge-3", "source": "node-economic-manager", "target": "node-mail-manager", "label": "Statement.CSV", "payload_format": "text/csv", "protocol": "HTTPS", "channel_type": "pipeline", "status": "healthy", "last_success_at_utc": "2026-08-20T09:06:00Z"},
+        {"id": "edge-4", "source": "node-mail-manager", "target": "node-gmail", "label": "REST JSON", "payload_format": "application/json", "protocol": "IMAP/HTTPS", "channel_type": "connector", "status": "healthy", "last_success_at_utc": "2026-08-20T08:42:00Z"},
+        {"id": "edge-5", "source": "node-rules-engine", "target": "node-compass", "label": "Policy JSON", "payload_format": "application/json", "protocol": "HTTPS", "channel_type": "policy", "status": "healthy", "last_success_at_utc": "2026-08-20T07:55:00Z"},
+        {"id": "edge-6", "source": "node-task-commander", "target": "node-calendar", "label": "ICS / CalDAV", "payload_format": "text/calendar", "protocol": "HTTPS", "channel_type": "scheduler", "status": "degraded", "last_success_at_utc": "2026-08-19T15:15:00Z"},
+        {"id": "edge-7", "source": "node-admin-agent", "target": "node-government", "label": "Forms PDF", "payload_format": "application/pdf", "protocol": "HTTPS", "channel_type": "document", "status": "healthy", "last_success_at_utc": "2026-08-18T11:09:00Z"},
+        {"id": "edge-8", "source": "node-self-trainer", "target": "node-personal-assessment", "label": "Assessment JSON", "payload_format": "application/json", "protocol": "HTTPS", "channel_type": "feedback", "status": "healthy", "last_success_at_utc": "2026-08-20T10:40:00Z"},
+        {"id": "edge-9", "source": "node-personal-assessment", "target": "node-self-manage", "label": "Context JSON", "payload_format": "application/json", "protocol": "HTTPS", "channel_type": "recommendation", "status": "healthy", "last_success_at_utc": "2026-08-20T10:41:00Z"},
+        {"id": "edge-10", "source": "node-anchor", "target": "node-calendar", "label": "Reminder JSON", "payload_format": "application/json", "protocol": "HTTPS", "channel_type": "conversation", "status": "healthy", "last_success_at_utc": "2026-08-20T06:30:00Z"},
+        {"id": "edge-11", "source": "node-compass", "target": "node-task-commander", "label": "Task JSON", "payload_format": "application/json", "protocol": "HTTPS", "channel_type": "orchestration", "status": "healthy", "last_success_at_utc": "2026-08-20T09:20:00Z"},
+        {"id": "edge-12", "source": "node-compass", "target": "node-admin-agent", "label": "Case JSON", "payload_format": "application/json", "protocol": "HTTPS", "channel_type": "orchestration", "status": "healthy", "last_success_at_utc": "2026-08-20T09:25:00Z"}
+      ]
+    }
+  },
+  "project_windows": [
+    {
+      "id": "project-compass",
+      "project_ref": "compass",
+      "title": "Compass",
+      "summary": "Central GPT gateway and orchestration hub.",
+      "kind": "hub",
+      "status": "active",
+      "owner": "moshe",
+      "identity_and_role": {
+        "slug": "compass",
+        "category": "hub",
+        "purpose": "Coordinate the local GPT ecosystem and route work to peer agents.",
+        "tags": ["gpt", "gateway", "orchestrator"],
+        "show_in_meta": true
+      },
+      "interfaces_and_flows": {
+        "inbound": ["GPT Actions", "local UI", "state patches"],
+        "outbound": ["rules_engine", "self_manage", "economic_manager", "mail_manager", "task_commander", "administrative_agent"],
+        "channels": ["HTTPS JSON", "CSV", "document sync"],
+        "notes": ["Single entry point for the ecosystem hub."]
+      },
+      "scheduler": {
+        "enabled": true,
+        "cadence": "on demand + morning brief",
+        "timezone": "Asia/Jerusalem",
+        "next_run_utc": "2026-08-21T06:00:00Z",
+        "retry_policy": "idempotent"
+      },
+      "roadmap_and_tasks": {
+        "tasks": [
+          {"id": "compass-task-1", "title": "Stabilize morning brief", "status": "in_progress", "priority": "urgent", "show_in_meta": true},
+          {"id": "compass-task-2", "title": "Reduce cross-project conflict paths", "status": "blocked", "priority": "high", "show_in_meta": true}
+        ],
+        "milestones": ["Unified state contract", "Optimistic patch save", "Graph editor parity"],
+        "risks": ["Revision conflicts", "stale seed data"]
+      },
+      "export_and_commit": {
+        "export_targets": ["json", "markdown", "graph"],
+        "commit_message": "Sync ecosystem hub state",
+        "commit_policy": "manual",
+        "last_export_at_utc": "2026-08-21T08:00:00Z",
+        "repo_path": "C:/workspace/compass"
+      }
+    },
+    {
+      "id": "project-self-manage",
+      "project_ref": "self_manage",
+      "title": "self_manage",
+      "summary": "Context and routine planner for physical, mental, and cognitive management.",
+      "kind": "agent",
+      "status": "active",
+      "owner": "moshe",
+      "identity_and_role": {
+        "slug": "self_manage",
+        "category": "agent",
+        "purpose": "Translate assessment outputs into practical self-management tasks.",
+        "tags": ["routine", "wellbeing", "exercise"],
+        "show_in_meta": true
+      },
+      "interfaces_and_flows": {
+        "inbound": ["Compass context", "personal_Assessment"],
+        "outbound": ["exercise plans", "approval requests", "promptable summaries"],
+        "channels": ["JSON", "markdown"],
+        "notes": ["Keeps a narrow user-facing surface." ]
+      },
+      "scheduler": {
+        "enabled": false,
+        "cadence": "manual",
+        "timezone": "Asia/Jerusalem",
+        "next_run_utc": null,
+        "retry_policy": "manual"
+      },
+      "roadmap_and_tasks": {
+        "tasks": [
+          {"id": "self-manage-task-1", "title": "Improve routine editor for breathing sets", "status": "planned", "priority": "high", "show_in_meta": true},
+          {"id": "self-manage-task-2", "title": "Add clearer export notes", "status": "planned", "priority": "medium", "show_in_meta": false}
+        ],
+        "milestones": ["Editable routine templates", "Better meta-task sync"],
+        "risks": ["Low signal from manual entries"]
+      },
+      "export_and_commit": {
+        "export_targets": ["json"],
+        "commit_message": "Refresh self_manage profile",
+        "commit_policy": "manual",
+        "last_export_at_utc": "2026-08-20T12:15:00Z",
+        "repo_path": "C:/workspace/self_manage"
+      }
+    },
+    {
+      "id": "project-anchor",
+      "project_ref": "anchor",
+      "title": "anchor",
+      "summary": "Chat and voice companion for short check-ins and routine prompts.",
+      "kind": "agent",
+      "status": "active",
+      "owner": "moshe",
+      "identity_and_role": {
+        "slug": "anchor",
+        "category": "agent",
+        "purpose": "Provide a conversational front end for quick check-ins and guidance.",
+        "tags": ["voice", "chat", "companion"],
+        "show_in_meta": true
+      },
+      "interfaces_and_flows": {
+        "inbound": ["Telegram", "voice input"],
+        "outbound": ["conversation summaries", "calendar reminders"],
+        "channels": ["audio", "text"],
+        "notes": ["Best suited for short interaction loops."]
+      },
+      "scheduler": {
+        "enabled": true,
+        "cadence": "daily",
+        "timezone": "Asia/Jerusalem",
+        "next_run_utc": "2026-08-21T04:30:00Z",
+        "retry_policy": "idempotent"
+      },
+      "roadmap_and_tasks": {
+        "tasks": [
+          {"id": "anchor-task-1", "title": "Tune voice relay reliability", "status": "in_progress", "priority": "high", "show_in_meta": true},
+          {"id": "anchor-task-2", "title": "Improve chat session summaries", "status": "planned", "priority": "medium", "show_in_meta": true}
+        ],
+        "milestones": ["Stable voice relay", "Better session summaries"],
+        "risks": ["Device-specific microphone quirks"]
+      },
+      "export_and_commit": {
+        "export_targets": ["json", "markdown"],
+        "commit_message": "Refresh anchor flows",
+        "commit_policy": "manual",
+        "last_export_at_utc": "2026-08-20T13:00:00Z",
+        "repo_path": "C:/workspace/anchor"
+      }
+    },
+    {
+      "id": "project-economic-manager",
+      "project_ref": "economic_manager",
+      "title": "economic_manager",
+      "summary": "Single finance agent for spending, income, obligations, alerts, and memory.",
+      "kind": "agent",
+      "status": "active",
+      "owner": "moshe",
+      "identity_and_role": {
+        "slug": "economic_manager",
+        "category": "agent",
+        "purpose": "Aggregate the financial picture and make it actionable.",
+        "tags": ["finance", "alerts", "spending"],
+        "show_in_meta": true
+      },
+      "interfaces_and_flows": {
+        "inbound": ["Compass", "mail_manager", "CSV imports"],
+        "outbound": ["budget insights", "alert rules", "transaction memory"],
+        "channels": ["JSON", "CSV"],
+        "notes": ["Should stay the single source of financial truth."]
+      },
+      "scheduler": {
+        "enabled": true,
+        "cadence": "hourly",
+        "timezone": "Asia/Jerusalem",
+        "next_run_utc": "2026-08-21T09:00:00Z",
+        "retry_policy": "idempotent"
+      },
+      "roadmap_and_tasks": {
+        "tasks": [
+          {"id": "econ-task-1", "title": "Sync statement import pipeline", "status": "planned", "priority": "urgent", "show_in_meta": true},
+          {"id": "econ-task-2", "title": "Unify category labels", "status": "planned", "priority": "high", "show_in_meta": true}
+        ],
+        "milestones": ["Statement ingestion", "Alert rule tuning"],
+        "risks": ["Stale account balances"]
+      },
+      "export_and_commit": {
+        "export_targets": ["json", "csv"],
+        "commit_message": "Refresh finance state",
+        "commit_policy": "manual",
+        "last_export_at_utc": "2026-08-20T15:45:00Z",
+        "repo_path": "C:/workspace/economic_manager"
+      }
+    },
+    {
+      "id": "project-mail-manager",
+      "project_ref": "mail_manager",
+      "title": "mail_manager",
+      "summary": "Email ingest and Gmail-derived financial item extraction.",
+      "kind": "agent",
+      "status": "active",
+      "owner": "moshe",
+      "identity_and_role": {
+        "slug": "mail_manager",
+        "category": "agent",
+        "purpose": "Convert Gmail mailboxes into financial signals and structured items.",
+        "tags": ["gmail", "ingest", "financial-mail"],
+        "show_in_meta": true
+      },
+      "interfaces_and_flows": {
+        "inbound": ["Gmail"],
+        "outbound": ["economic_manager"],
+        "channels": ["IMAP", "JSON"],
+        "notes": ["Primarily a pipeline worker."]
+      },
+      "scheduler": {
+        "enabled": true,
+        "cadence": "every 15 minutes",
+        "timezone": "Asia/Jerusalem",
+        "next_run_utc": "2026-08-21T09:15:00Z",
+        "retry_policy": "idempotent"
+      },
+      "roadmap_and_tasks": {
+        "tasks": [
+          {"id": "mail-task-1", "title": "Improve parsing of statement notifications", "status": "planned", "priority": "urgent", "show_in_meta": true}
+        ],
+        "milestones": ["Mailbox sync", "Financial item extraction"],
+        "risks": ["Provider-specific email templates"]
+      },
+      "export_and_commit": {
+        "export_targets": ["json"],
+        "commit_message": "Refresh mail ingest",
+        "commit_policy": "manual",
+        "last_export_at_utc": "2026-08-20T16:10:00Z",
+        "repo_path": "C:/workspace/mail_manager"
+      }
+    },
+    {
+      "id": "project-rules-engine",
+      "project_ref": "rules_engine",
+      "title": "rules_engine",
+      "summary": "Automation and approval backbone shared by the Compass ecosystem.",
+      "kind": "agent",
+      "status": "active",
+      "owner": "moshe",
+      "identity_and_role": {
+        "slug": "rules_engine",
+        "category": "agent",
+        "purpose": "Evaluate policy and emit decisions for downstream agents.",
+        "tags": ["policy", "approval", "automation"],
+        "show_in_meta": false
+      },
+      "interfaces_and_flows": {
+        "inbound": ["event JSON", "task intents"],
+        "outbound": ["decision JSON", "approval requests"],
+        "channels": ["JSON"],
+        "notes": ["Shared logic layer rather than a user-facing app."]
+      },
+      "scheduler": {
+        "enabled": true,
+        "cadence": "on demand",
+        "timezone": "Asia/Jerusalem",
+        "next_run_utc": null,
+        "retry_policy": "idempotent"
+      },
+      "roadmap_and_tasks": {
+        "tasks": [
+          {"id": "rules-task-1", "title": "Clarify rule decision traces", "status": "planned", "priority": "medium", "show_in_meta": false}
+        ],
+        "milestones": ["Policy traceability", "Safer approvals"],
+        "risks": ["Ambiguous rule precedence"]
+      },
+      "export_and_commit": {
+        "export_targets": ["json"],
+        "commit_message": "Refresh policy layer",
+        "commit_policy": "manual",
+        "last_export_at_utc": "2026-08-20T14:05:00Z",
+        "repo_path": "C:/workspace/rules_engine"
+      }
+    },
+    {
+      "id": "project-task-commander",
+      "project_ref": "task_commander",
+      "title": "TaskCommander",
+      "summary": "Operational tasks, reminders, recurrence, and calendar sync.",
+      "kind": "agent",
+      "status": "active",
+      "owner": "moshe",
+      "identity_and_role": {
+        "slug": "task_commander",
+        "category": "agent",
+        "purpose": "Manage operational tasks and recurrence.",
+        "tags": ["tasks", "calendar", "reminders"],
+        "show_in_meta": false
+      },
+      "interfaces_and_flows": {
+        "inbound": ["Compass", "user prompts"],
+        "outbound": ["calendar", "task lists"],
+        "channels": ["JSON", "ICS"],
+        "notes": ["Useful as the execution layer for reminders."]
+      },
+      "scheduler": {
+        "enabled": true,
+        "cadence": "every 30 minutes",
+        "timezone": "Asia/Jerusalem",
+        "next_run_utc": "2026-08-21T09:30:00Z",
+        "retry_policy": "retry-on-failure"
+      },
+      "roadmap_and_tasks": {
+        "tasks": [
+          {"id": "task-commander-task-1", "title": "Sync repeating reminders", "status": "planned", "priority": "high", "show_in_meta": false}
+        ],
+        "milestones": ["Stable recurrence sync"],
+        "risks": ["Calendar API drift"]
+      },
+      "export_and_commit": {
+        "export_targets": ["json"],
+        "commit_message": "Update reminders",
+        "commit_policy": "manual",
+        "last_export_at_utc": "2026-08-20T17:00:00Z",
+        "repo_path": "C:/workspace/TaskCommander"
+      }
+    },
+    {
+      "id": "project-administrative-agent",
+      "project_ref": "administrative_agent",
+      "title": "administrative_agent",
+      "summary": "Government, institutions, forms, cases, documents, and prepared communications.",
+      "kind": "agent",
+      "status": "active",
+      "owner": "moshe",
+      "identity_and_role": {
+        "slug": "administrative_agent",
+        "category": "agent",
+        "purpose": "Track obligations and make administrative work actionable.",
+        "tags": ["admin", "forms", "cases"],
+        "show_in_meta": false
+      },
+      "interfaces_and_flows": {
+        "inbound": ["Compass"],
+        "outbound": ["documents", "case notes", "prepared messages"],
+        "channels": ["PDF", "JSON"],
+        "notes": ["Often paired with external portals."]
+      },
+      "scheduler": {
+        "enabled": false,
+        "cadence": "manual",
+        "timezone": "Asia/Jerusalem",
+        "next_run_utc": null,
+        "retry_policy": "manual"
+      },
+      "roadmap_and_tasks": {
+        "tasks": [
+          {"id": "admin-task-1", "title": "Create a case checklist view", "status": "planned", "priority": "medium", "show_in_meta": false}
+        ],
+        "milestones": ["Case tracking", "Document generation"],
+        "risks": ["Document fragmentation"]
+      },
+      "export_and_commit": {
+        "export_targets": ["json", "pdf"],
+        "commit_message": "Refresh admin flows",
+        "commit_policy": "manual",
+        "last_export_at_utc": "2026-08-20T17:25:00Z",
+        "repo_path": "C:/workspace/administrative_agent"
+      }
+    },
+    {
+      "id": "project-self-trainer",
+      "project_ref": "self_trainer",
+      "title": "self_trainer",
+      "summary": "Training and coaching API project.",
+      "kind": "agent",
+      "status": "active",
+      "owner": "moshe",
+      "identity_and_role": {
+        "slug": "self_trainer",
+        "category": "agent",
+        "purpose": "Produce and refine training sessions and learning routes.",
+        "tags": ["training", "learning", "coach"],
+        "show_in_meta": false
+      },
+      "interfaces_and_flows": {
+        "inbound": ["Compass"],
+        "outbound": ["exercise plans", "assessment inputs"],
+        "channels": ["JSON"],
+        "notes": ["Feeder for assessment logic."]
+      },
+      "scheduler": {
+        "enabled": true,
+        "cadence": "daily",
+        "timezone": "Asia/Jerusalem",
+        "next_run_utc": "2026-08-21T05:00:00Z",
+        "retry_policy": "idempotent"
+      },
+      "roadmap_and_tasks": {
+        "tasks": [
+          {"id": "trainer-task-1", "title": "Refresh session quality heuristics", "status": "planned", "priority": "medium", "show_in_meta": false}
+        ],
+        "milestones": ["Session generation", "Assessment loop"],
+        "risks": ["Noisy learning objectives"]
+      },
+      "export_and_commit": {
+        "export_targets": ["json"],
+        "commit_message": "Refresh training pipeline",
+        "commit_policy": "manual",
+        "last_export_at_utc": "2026-08-20T18:00:00Z",
+        "repo_path": "C:/workspace/self_trainer"
+      }
+    },
+    {
+      "id": "project-personal-assessment",
+      "project_ref": "personal_assessment",
+      "title": "personal_Assessment",
+      "summary": "Current-state assessment and recommendation layer.",
+      "kind": "agent",
+      "status": "active",
+      "owner": "moshe",
+      "identity_and_role": {
+        "slug": "personal_assessment",
+        "category": "agent",
+        "purpose": "Turn observations into recommendations and next steps.",
+        "tags": ["assessment", "recommendation"],
+        "show_in_meta": false
+      },
+      "interfaces_and_flows": {
+        "inbound": ["self_trainer"],
+        "outbound": ["self_manage", "Compass"],
+        "channels": ["JSON"],
+        "notes": ["Acts as a bridge between training and action."]
+      },
+      "scheduler": {
+        "enabled": false,
+        "cadence": "manual",
+        "timezone": "Asia/Jerusalem",
+        "next_run_utc": null,
+        "retry_policy": "manual"
+      },
+      "roadmap_and_tasks": {
+        "tasks": [
+          {"id": "assessment-task-1", "title": "Sharpen recommendation wording", "status": "planned", "priority": "medium", "show_in_meta": false}
+        ],
+        "milestones": ["Assessment signal quality"],
+        "risks": ["Overfitting to stale context"]
+      },
+      "export_and_commit": {
+        "export_targets": ["json"],
+        "commit_message": "Refresh assessment layer",
+        "commit_policy": "manual",
+        "last_export_at_utc": "2026-08-20T18:30:00Z",
+        "repo_path": "C:/workspace/personal_Assessment"
+      }
+    }
+  ]
+}

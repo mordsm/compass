@@ -105,6 +105,8 @@ class RuleEvaluationResponse(BaseModel):
     routes: list[RouteDecision] = Field(default_factory=list)
     selected_workflow: dict[str, Any] | None = None
     redactions: list[Redaction] = Field(default_factory=list)
+    conflicts_resolved: list[dict[str, Any]] = Field(default_factory=list)
+    alternatives_considered: list[dict[str, Any]] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     dry_run: bool = False
     explanation: str = ""

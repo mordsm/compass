@@ -60,6 +60,44 @@ def ensure_rules_engine_running() -> None:
     )
 
 
+def ensure_self_manage_running() -> None:
+    settings = get_settings()
+    ensure_local_service(
+        name="self_manage",
+        base_url=settings.self_manage_base_url,
+        project_path=settings.self_manage_path,
+        command=[
+            "uv",
+            "run",
+            "uvicorn",
+            "exercise_studio.main:app",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            _port(settings.self_manage_base_url),
+        ],
+    )
+
+
+def ensure_drawmentor_running() -> None:
+    settings = get_settings()
+    ensure_local_service(
+        name="drawMentor",
+        base_url=settings.drawmentor_base_url,
+        project_path=settings.drawmentor_path,
+        command=[
+            "uv",
+            "run",
+            "uvicorn",
+            "drawmentor.main:app",
+            "--host",
+            "0.0.0.0",
+            "--port",
+            _port(settings.drawmentor_base_url),
+        ],
+    )
+
+
 def ensure_local_service(
     *,
     name: str,

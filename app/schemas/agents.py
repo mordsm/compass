@@ -14,6 +14,7 @@ AgentId = Literal[
     "task_commander",
     "administrative",
     "self_trainer",
+    "accountability_coach",
 ]
 
 

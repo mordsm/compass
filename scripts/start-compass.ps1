@@ -2,7 +2,9 @@ param(
     [int]$Port = 8000,
     [switch]$Restart,
     [switch]$SkipSelfTrainer,
-    [switch]$NoTunnel
+    [switch]$NoTunnel,
+    [ValidateSet("http2", "quic")]
+    [string]$TunnelProtocol = "http2"
 )
 
 $ErrorActionPreference = "Stop"
@@ -141,6 +143,16 @@ try {
         Write-Host "Self Trainer is running at $SelfTrainerBaseUrl"
     }
 
+    $drawMentorScript = Resolve-Path (Join-Path $Root "..\drawMentor\scripts\start-drawmentor.ps1") -ErrorAction SilentlyContinue
+    if ($drawMentorScript) {
+        try {
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $drawMentorScript.Path -Port 8011
+        }
+        catch {
+            Write-Host "drawMentor did not start automatically: $_"
+        }
+    }
+
     if ($NoTunnel) {
         exit 0
     }
@@ -163,7 +175,7 @@ try {
 
     Start-Process `
         -FilePath $cloudflaredPath `
-        -ArgumentList @("tunnel", "--url", $LocalBaseUrl, "--logfile", $TunnelLog, "--loglevel", "info") `
+        -ArgumentList @("tunnel", "--protocol", $TunnelProtocol, "--url", $LocalBaseUrl, "--logfile", $TunnelLog, "--loglevel", "info") `
         -WorkingDirectory $Root `
         -WindowStyle Hidden
 

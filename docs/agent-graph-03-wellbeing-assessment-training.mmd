@@ -1,0 +1,24 @@
+flowchart TD
+  WellbeingEntry["WellbeingEntry<br/>from CompassRouter"]
+  LocalStart{"LocalAgentRunning?<br/>ports 8001 / 8002 / 8008"}
+  Autostart["AutostartLocalAgent<br/>start dormant service"]
+  SelfManage["self_manage<br/>today plan + reminders"]
+  Assessment["personal_Assessment<br/>evidence + recommendations"]
+  SelfTrainer["self_trainer<br/>sessions + history + progress"]
+  AuditEnd([AuditEnd<br/>audit + response])
+
+  WellbeingEntry --> LocalStart
+  LocalStart -- "no" --> Autostart --> LocalStart
+  LocalStart -- "self_manage ready" --> SelfManage --> AuditEnd
+  LocalStart -- "assessment ready" --> Assessment --> AuditEnd
+  LocalStart -- "self_trainer ready" --> SelfTrainer --> AuditEnd
+
+  SelfTrainer -- "assessment feedback" --> Assessment
+  Assessment -- "recommendations / context" --> SelfManage
+
+  classDef wellbeing fill:#dcfce7,stroke:#15803d,color:#0f172a;
+  classDef compass fill:#e0f2fe,stroke:#0369a1,color:#0f172a;
+  classDef terminal fill:#f8fafc,stroke:#334155,stroke-width:2px,color:#0f172a;
+  class WellbeingEntry,LocalStart,Autostart compass;
+  class SelfManage,Assessment,SelfTrainer wellbeing;
+  class AuditEnd terminal;

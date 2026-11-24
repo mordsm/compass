@@ -1,0 +1,24 @@
+flowchart TD
+  StorageEntry["StorageEntry<br/>from START / local UI"]
+  ContextService["context_service<br/>morning context"]
+  Conversations["conversation events<br/>summaries"]
+  DailyPlan["daily_plan<br/>saved plan"]
+  LocalTasks["local task proposals<br/>mentioned / proposed / approved"]
+  EcosystemHub["ecosystem_hub<br/>meta graph state"]
+  GraphSeed["ecosystem-hub.seed.json<br/>nodes + edges"]
+  Exports["app/exports<br/>latest + revisions"]
+  AuditEnd([AuditEnd<br/>stored state / response])
+
+  StorageEntry --> ContextService --> AuditEnd
+  StorageEntry --> Conversations --> AuditEnd
+  StorageEntry --> DailyPlan --> AuditEnd
+  StorageEntry --> LocalTasks --> AuditEnd
+  StorageEntry --> EcosystemHub --> AuditEnd
+
+  GraphSeed --> EcosystemHub
+  EcosystemHub --> Exports
+
+  classDef storage fill:#f0fdfa,stroke:#0f766e,color:#0f172a;
+  classDef terminal fill:#f8fafc,stroke:#334155,stroke-width:2px,color:#0f172a;
+  class StorageEntry,ContextService,Conversations,DailyPlan,LocalTasks,EcosystemHub,GraphSeed,Exports storage;
+  class AuditEnd terminal;

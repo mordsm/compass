@@ -1,0 +1,115 @@
+flowchart TD
+  %% Compass agent ecosystem as a LangGraph-style control graph.
+  %% Sources:
+  %% - app/routers/agents.py
+  %% - app/schemas/agents.py
+  %% - app/data/ecosystem-hub.seed.json
+  %% - README.md
+
+  START([START<br/>GPT Action / Local UI / Scheduler])
+  END([END<br/>Response / Audit / Stored State])
+
+  subgraph Compass["Compass gateway / supervisor"]
+    INTAKE["intake_request<br/>normalize task, user_id, context"]
+    ROUTER{"agent_router<br/>agent_id + task"}
+    APPROVAL{"approval_required?"}
+    APPROVAL_QUEUE["approval_queue<br/>create approval request"]
+    AUDIT["audit_log<br/>CompassRepository.audit"]
+    LOCAL_START{"local agent running?"}
+    AUTOSTART["autostart_local_agent<br/>ports 8001-8008"]
+  end
+
+  subgraph Policy["Policy and safety"]
+    RULES["rules_engine<br/>policy evaluation"]
+    APPROVALS_API["approvals_api<br/>pending -> approved/rejected"]
+  end
+
+  subgraph Wellbeing["Wellbeing / assessment agents"]
+    SELF_MANAGE["self_manage<br/>today plan + reminders"]
+    ASSESSMENT["personal_Assessment<br/>assessment evidence + recommendations"]
+    SELF_TRAINER["self_trainer<br/>training context + sessions + progress"]
+  end
+
+  subgraph Finance["Finance agents"]
+    MAIL["mail_manager<br/>Gmail ingest + financial items"]
+    ECON["economic_manager<br/>finance memory + imports + reports"]
+    GMAIL[(Gmail)]
+    BANKCSV[(Statement CSV)]
+  end
+
+  subgraph Operations["Operations agents"]
+    TASKS["TaskCommander<br/>tasks + recurrences + instances"]
+    ADMIN["administrative_agent<br/>obligations + cases + documents"]
+    CAL[(Calendar)]
+    GOV[(Government portal)]
+  end
+
+  subgraph Conversation["Conversation / companion"]
+    ANCHOR["anchor<br/>voice/chat check-ins"]
+  end
+
+  subgraph CompassStorage["Compass local state"]
+    CONTEXT["context_service<br/>morning context"]
+    CONVERSATIONS["conversation events<br/>summaries"]
+    DAILY_PLAN["daily_plan<br/>saved plan"]
+    LOCAL_TASKS["local task proposals<br/>mentioned/proposed/approved"]
+    ECOSYSTEM["ecosystem_hub<br/>meta graph state"]
+  end
+
+  START --> INTAKE --> APPROVAL
+  APPROVAL -- "yes" --> APPROVAL_QUEUE --> APPROVALS_API --> END
+  APPROVAL -- "no" --> ROUTER
+
+  ROUTER -- "rules_engine" --> RULES --> AUDIT --> END
+  ROUTER -- "self_manage" --> LOCAL_START
+  ROUTER -- "assessment" --> LOCAL_START
+  ROUTER -- "self_trainer" --> SELF_TRAINER --> AUDIT --> END
+  ROUTER -- "mail_manager" --> MAIL --> AUDIT --> END
+  ROUTER -- "economic_manager" --> LOCAL_START
+  ROUTER -- "task_commander" --> TASKS --> AUDIT --> END
+  ROUTER -- "administrative" --> ADMIN --> AUDIT --> END
+
+  LOCAL_START -- "no" --> AUTOSTART --> LOCAL_START
+  LOCAL_START -- "self_manage ready" --> SELF_MANAGE --> AUDIT --> END
+  LOCAL_START -- "assessment ready" --> ASSESSMENT --> AUDIT --> END
+  LOCAL_START -- "economic_manager ready" --> ECON --> AUDIT --> END
+
+  %% Explicit task-level routing inside /api/agents/invoke.
+  ECON -- "sync_mail_financial_items" --> MAIL
+  MAIL -- "financial_items" --> ECON
+  MAIL -- "ingest" --> GMAIL
+  ECON -- "import_csv / sources" --> BANKCSV
+
+  SELF_TRAINER -- "assessment feedback" --> ASSESSMENT
+  ASSESSMENT -- "recommendations / context" --> SELF_MANAGE
+
+  TASKS -- "calendar sync / reminders" --> CAL
+  ANCHOR -- "reminder JSON" --> CAL
+  ADMIN -- "forms / case docs" --> GOV
+
+  RULES -- "policy JSON" --> INTAKE
+  RULES -- "requires human approval" --> APPROVAL_QUEUE
+
+  START --> CONTEXT --> END
+  START --> CONVERSATIONS --> END
+  START --> DAILY_PLAN --> END
+  START --> LOCAL_TASKS --> END
+  START --> ECOSYSTEM --> END
+
+  classDef startEnd fill:#f8fafc,stroke:#334155,stroke-width:2px,color:#0f172a;
+  classDef compass fill:#e0f2fe,stroke:#0369a1,stroke-width:1px,color:#0f172a;
+  classDef policy fill:#fef3c7,stroke:#b45309,stroke-width:1px,color:#0f172a;
+  classDef wellbeing fill:#dcfce7,stroke:#15803d,stroke-width:1px,color:#0f172a;
+  classDef finance fill:#ffe4e6,stroke:#be123c,stroke-width:1px,color:#0f172a;
+  classDef ops fill:#ede9fe,stroke:#6d28d9,stroke-width:1px,color:#0f172a;
+  classDef external fill:#f1f5f9,stroke:#64748b,stroke-dasharray:4 3,color:#0f172a;
+  classDef storage fill:#f0fdfa,stroke:#0f766e,stroke-width:1px,color:#0f172a;
+
+  class START,END startEnd;
+  class INTAKE,ROUTER,APPROVAL,APPROVAL_QUEUE,AUDIT,LOCAL_START,AUTOSTART compass;
+  class RULES,APPROVALS_API policy;
+  class SELF_MANAGE,ASSESSMENT,SELF_TRAINER wellbeing;
+  class MAIL,ECON finance;
+  class TASKS,ADMIN ops;
+  class GMAIL,BANKCSV,CAL,GOV external;
+  class CONTEXT,CONVERSATIONS,DAILY_PLAN,LOCAL_TASKS,ECOSYSTEM storage;

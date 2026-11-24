@@ -1,0 +1,24 @@
+flowchart TD
+  OperationsEntry["OperationsEntry<br/>from CompassRouter"]
+  TaskCommander["TaskCommander<br/>tasks + recurrences + instances"]
+  Administrative["administrative_agent<br/>obligations + cases + documents"]
+  Anchor["anchor<br/>voice/chat check-ins"]
+  Calendar[(Calendar)]
+  Government[(Government portal)]
+  AuditEnd([AuditEnd<br/>audit + response])
+
+  OperationsEntry -- "task_commander" --> TaskCommander --> AuditEnd
+  OperationsEntry -- "administrative" --> Administrative --> AuditEnd
+
+  TaskCommander -- "calendar sync / reminders" --> Calendar
+  Anchor -- "reminder JSON" --> Calendar
+  Administrative -- "forms / case docs" --> Government
+
+  classDef ops fill:#ede9fe,stroke:#6d28d9,color:#0f172a;
+  classDef conversation fill:#fce7f3,stroke:#be185d,color:#0f172a;
+  classDef external fill:#f1f5f9,stroke:#64748b,stroke-dasharray:4 3,color:#0f172a;
+  classDef terminal fill:#f8fafc,stroke:#334155,stroke-width:2px,color:#0f172a;
+  class OperationsEntry,TaskCommander,Administrative ops;
+  class Anchor conversation;
+  class Calendar,Government external;
+  class AuditEnd terminal;

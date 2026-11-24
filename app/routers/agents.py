@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.auth import require_actions_key
 from app.repository import CompassRepository
 from app.schemas.agents import InvokeAgentRequest
+from app.services.accountability_coach import AccountabilityCoachAdapter
 from app.services.assessment import AssessmentAdapter
 from app.services.economic_manager import EconomicManagerAdapter
 from app.services.mail_manager import MailManagerAdapter
@@ -187,6 +188,16 @@ def invoke_agent(request: InvokeAgentRequest) -> dict:
         administrative = AdministrativeAdapter()
         if request.task == "record_obligation":
             return administrative.record_obligation({**request.context, "user_id": request.user_id})
+        if request.task == "open_case":
+            return administrative.open_case({**request.context, "user_id": request.user_id})
+        if request.task == "add_case_event":
+            return administrative.add_case_event(str(request.context["case_id"]), request.context.get("event", {}))
+        if request.task == "add_case_document":
+            return administrative.add_case_document(str(request.context["case_id"]), request.context.get("document", {}))
+        if request.task == "add_case_checklist_item":
+            return administrative.add_case_checklist_item(str(request.context["case_id"]), request.context.get("item", {}))
+        if request.task == "draft_case_communication":
+            return administrative.draft_case_communication(str(request.context["case_id"]), request.context.get("draft", {}))
         return {
             "connected": True,
             "result": {
@@ -195,4 +206,15 @@ def invoke_agent(request: InvokeAgentRequest) -> dict:
                 "cases": administrative.cases(user_id=request.user_id),
             },
         }
+    if request.agent_id == "accountability_coach":
+        coach = AccountabilityCoachAdapter()
+        if request.task in ("morning_briefing", "morning"):
+            return coach.morning_briefing(user_id=request.user_id, context=request.context)
+        if request.task in ("mark_item_done", "done"):
+            return coach.mark_item_done(user_id=request.user_id, context=request.context)
+        if request.task in ("intraday_check", "checkin", "intraday"):
+            return coach.intraday_check(user_id=request.user_id, context=request.context)
+        if request.task in ("evening_debrief", "evening"):
+            return coach.evening_debrief(user_id=request.user_id, context=request.context)
+        return coach.morning_briefing(user_id=request.user_id, context=request.context)
     raise HTTPException(status_code=400, detail="unknown-agent")

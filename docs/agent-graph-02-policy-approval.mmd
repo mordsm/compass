@@ -1,0 +1,20 @@
+flowchart TD
+  PolicyEntry["PolicyEntry<br/>from CompassRouter"]
+  RulesEngine["rules_engine<br/>evaluate policy / workflow"]
+  Decision{"RuleDecision"}
+  CompassIntake["CompassIntake<br/>policy JSON back to Compass"]
+  ApprovalQueue["ApprovalQueue<br/>proposed action"]
+  ApprovalsApi["approvals_api<br/>pending -> approved/rejected"]
+  AuditEnd([AuditEnd<br/>audit + response])
+
+  PolicyEntry --> RulesEngine --> Decision
+  Decision -- "safe / informational" --> AuditEnd
+  Decision -- "needs routing" --> CompassIntake
+  Decision -- "needs human approval" --> ApprovalQueue --> ApprovalsApi --> AuditEnd
+
+  classDef policy fill:#fef3c7,stroke:#b45309,color:#0f172a;
+  classDef compass fill:#e0f2fe,stroke:#0369a1,color:#0f172a;
+  classDef terminal fill:#f8fafc,stroke:#334155,stroke-width:2px,color:#0f172a;
+  class PolicyEntry,RulesEngine,Decision policy;
+  class CompassIntake,ApprovalQueue,ApprovalsApi compass;
+  class AuditEnd terminal;
