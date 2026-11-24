@@ -435,6 +435,49 @@ class UnifiedV6PocSlicesTests(unittest.TestCase):
         self.assertTrue(bkp["success"])
         self.assertTrue(bkp["restorable"])
 
+    def test_phase5_attention_self_report_scheduler_tick_and_day_one_bootstrap(self) -> None:
+        from app.routers.unified_v6 import (
+            LogAttentionSelfReportRequest,
+            SchedulerTickRequest,
+            ToggleAttentionPauseRequest,
+            bootstrap_personal_day_one,
+            log_attention_self_report,
+            run_server_scheduler_tick,
+            toggle_attention_pause,
+        )
+
+        # 1. One-click Day-1 Personal Bootstrap
+        boot = bootstrap_personal_day_one(user_id="moshe")
+        self.assertTrue(boot["success"])
+        self.assertEqual(boot["created_frogs_count"], 4)
+        self.assertEqual(boot["created_core_activities_count"], 3)
+        self.assertEqual(boot["created_scheduled_messages_count"], 3)
+
+        # 2. One-click Attention Self-Report (worked / browsed / break) + immediate stop button
+        rep_work = log_attention_self_report(LogAttentionSelfReportRequest(user_id="moshe", category="worked"))
+        self.assertTrue(rep_work["success"])
+        self.assertFalse(rep_work["assumed_distraction"])
+        self.assertEqual(rep_work["attention_state"]["counts"]["worked"], 1)
+
+        rep_browse = log_attention_self_report(LogAttentionSelfReportRequest(user_id="moshe", category="browsed"))
+        self.assertTrue(rep_browse["success"])
+        self.assertFalse(rep_browse["assumed_distraction"])
+
+        # Immediate Stop Tracking button blocks any further recording while paused
+        paused_state = toggle_attention_pause(ToggleAttentionPauseRequest(user_id="moshe", paused=True))
+        self.assertTrue(paused_state["tracking_paused"])
+        blocked_rep = log_attention_self_report(LogAttentionSelfReportRequest(user_id="moshe", category="break"))
+        self.assertFalse(blocked_rep["success"])
+        self.assertEqual(blocked_rep["status"], "tracking_paused")
+
+        # 3. Persistent Server Scheduler Tick at 18:00
+        tick = run_server_scheduler_tick(
+            SchedulerTickRequest(user_id="moshe", current_time="18:00", auto_backup=True)
+        )
+        self.assertTrue(tick["success"])
+        self.assertGreaterEqual(tick["checked_instances_count"], 3)
+        self.assertTrue(tick["backup_created"])
+
 
 if __name__ == "__main__":
     unittest.main()

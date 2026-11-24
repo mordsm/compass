@@ -252,6 +252,7 @@
         <option value="focus">מצב: מיקוד (Focus)</option>
       </select>
       <button id="mute-btn" class="warn" onclick="toggleGlobalMute()">🔇 השתק הקראות (Mute)</button>
+      <button class="ok" onclick="runDayOneBootstrap()">🚀 אתחל סדר יום ראשוני (Day-1 Bootstrap)</button>
       <button class="secondary" onclick="runSleepCatchup()">⏰ התאוששות משינה</button>
       <button class="ok" onclick="syncSelfManageMorning()">🏋️ ייבא תרגילי בוקר (Self-Manage)</button>
       <button class="secondary" onclick="createDbBackup()">💾 גיבוי DB מאומת</button>
@@ -693,6 +694,31 @@
         </div>
       </div>
     </div>
+
+    <!-- Card 18: One-Click Attention Self-Report & Server Background Scheduler -->
+    <div class="card">
+      <div>
+        <div class="card-header">
+          <h2>👁️ 18. דיווח קשב בלחיצה אחת (עבדתי / גלשתי / הפסקה) ומתזמן שרת</h2>
+          <button class="help-btn" onclick="openHelp('card18')" title="הסבר על קובייה 18">?</button>
+        </div>
+        <div id="v6-attention-box">טוען...</div>
+      </div>
+      <div class="form-box">
+        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">דיווח עצמי אופציונלי בלחיצה אחת (ללא איסוף תוכן גלישה או צילומי מסך):</div>
+        <div class="form-row">
+          <button class="ok" onclick="reportV6Attention('worked')">💻 עבדתי</button>
+          <button class="secondary" onclick="reportV6Attention('browsed')">🌐 גלשתי</button>
+          <button class="secondary" onclick="reportV6Attention('break')">☕ הפסקה</button>
+          <button id="attn-pause-btn" class="warn" onclick="toggleV6AttentionPause()">⏹ עצור מעקב מיידית</button>
+        </div>
+        <div class="form-row" style="margin-top:6px;">
+          <label>שעת בדיקת מתזמן שרת:</label>
+          <input id="sched-time" type="text" value="18:00" style="width:65px;" />
+          <button class="secondary" onclick="runV6SchedulerTick()">⏱ הרץ סריקת מתזמן שרת</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Card 10 & 11: Decisions, Pending Approvals & Inspector -->
@@ -851,6 +877,13 @@
         why: "אין דבר כזה 'ציון בריאות כללי' אחד: ייתכן שהאנרגיה הפיזית שלך נמוכה (2/5) אך הריכוז גבוה (5/5) – מצב אידיאלי ללמידת AI וכתיבה, עם גרסת מינימום באימון הגופני. בנוסף, כשהמחשב ישן בלילה או אין קליטה בטלפון, תור ה-Offline שומר את הסימונים שלך ומסנכרן אותם עם מניעת התנגשויות ברגע שהשרת זמין.",
         how: "<ul><li><strong>4D Energy:</strong> נשמר ב-<code>v6_energy_4d_logs</code> ומפיק הנחיה מותאמת לפרופיל האנרגיה הנוכחי.</li><li><strong>PWA + Offline Queue:</strong> הדף כולל <code>manifest.webmanifest</code> ו-<code>Service Worker</code>. אם פעולת סימון מתבצעת כשהשרת מנותק, היא נשמרת ב-<code>localStorage</code> עם מזהה פעולה ייחודי ומסונכרנת ל-<code>POST /api/v6/offline/sync</code> בלחיצה או בחזרת חיבור.</li></ul>",
         example: "דרג פיזית=2, ריכוז=5, מוטיבציה=4, עומס רגשי=2 ולחץ 'שמור אנרגיה ותועלת' – המערכת תמליץ מיד להתמקד במשימת AI/כתיבה ולהשתמש בגרסת מינימום לפעילות הגופנית."
+      },
+      card18: {
+        title: "👁️ קובייה 18: דיווח קשב עצמי בלחיצה אחת, כפתור עצירת מעקב ומתזמן השרת (סעיפים 15 ו-16)",
+        what: "סרגל דיווח קשב עצמי אופציונלי בלחיצה אחת ('💻 עבדתי', '🌐 גלשתי', '☕ הפסקה') עם כפתור עצירת מעקב מיידי, ולוח הפעלה למתזמן השרת המתמשך (Server Scheduler).",
+        why: "לפי סעיף 15 באפיון המאוחד, עוד לפני כל ניטור אוטומטי עתידי, הגרסה השימושית מציעה דיווח עצמי אופציונלי בלחיצה אחת בלי להניח שגלישה היא הסחת דעת, בלי להסיק רצף בין דיווחים, ועם איסור מוחלט כברירת מחדל על איסוף תוכן גלישה או צילומי מסך.",
+        how: "<ul><li><strong>כפתור עצירת מעקב מיידי:</strong> לחיצה על '⏹ עצור מעקב מיידית' חוסמת מיידית כל רישום קשב עד שתחדש אותו.</li><li><strong>מתזמן השרת (Server Scheduler):</strong> סורק את כל פעילויות היום שהגיע מועד הבדיקה שלהן (<code>check_time</code>), מריץ התאוששות משינה אם טרם רצה היום, ולא שולח שום התראה כפולה על פעילות שכבר הושלמה.</li></ul>",
+        example: "לחץ על '💻 עבדתי' או על '⏱ הרץ סריקת מתזמן שרת' לשעה 18:00 כדי לראות את כל בדיקות הכללים היומיות רצות יחד."
       }
     };
 
@@ -1194,6 +1227,27 @@
           <strong>ימים שבהם המערכת הועילה לך:</strong> <span class="badge ok">${v6Energy.helpful_system_days_count ?? 0}</span> |
           <strong>פעולות בתור Offline לסנכרון:</strong> <span class="badge ${offlineQueue.length ? 'warn' : 'ok'}">${offlineQueue.length}</span>
         </div>
+      `;
+
+      // Render Card 18: Attention Self-Report & Server Scheduler
+      const v6Attn = data.v6_attention || {};
+      const attnCounts = v6Attn.counts || {};
+      const pauseBtn = document.getElementById('attn-pause-btn');
+      if (pauseBtn) {
+        pauseBtn.textContent = v6Attn.tracking_paused ? '▶ חדש מעקב קשב' : '⏹ עצור מעקב מיידית';
+        pauseBtn.className = v6Attn.tracking_paused ? 'ok' : 'warn';
+      }
+      document.getElementById('v6-attention-box').innerHTML = `
+        <div>
+          <strong>סטטוס מעקב קשב:</strong>
+          <span class="badge ${v6Attn.tracking_paused ? 'warn' : 'ok'}">${v6Attn.tracking_paused ? 'מופסק (Paused)' : 'פעיל (דיווח עצמי בלבד)'}</span>
+        </div>
+        <div style="margin:6px 0;">
+          💻 עבדתי: <strong>${attnCounts.worked ?? 0}</strong> |
+          🌐 גלשתי: <strong>${attnCounts.browsed ?? 0}</strong> |
+          ☕ הפסקה: <strong>${attnCounts.break ?? 0}</strong>
+        </div>
+        <div style="font-size:0.78rem; color:var(--muted);">${v6Attn.privacy_policy_he || ''}</div>
       `;
     }
 
@@ -1853,6 +1907,48 @@
       const data = await res.json();
       localStorage.setItem('compass_v6_offline_queue', '[]');
       showOutput('🔄 תור Offline סונכרן מול השרת:', data);
+      await loadOverview();
+    }
+
+    async function runDayOneBootstrap() {
+      const res = await fetch('/api/v6/bootstrap/day-one?user_id=moshe', {method: 'POST'});
+      const data = await res.json();
+      showOutput('🚀 סדר היום הראשוני אותחל בהצלחה (4 צפרדעים, פעילויות ליבה, תרגילי בוקר מ-Self-Manage ו-3 תזמוני מדיה/הקראה):', data);
+      await loadOverview();
+    }
+
+    async function reportV6Attention(category) {
+      const res = await fetch('/api/v6/attention/report', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', category})
+      });
+      const data = await res.json();
+      showOutput(`👁️ דיווח קשב עצמי (${category}):`, data);
+      await loadOverview();
+    }
+
+    async function toggleV6AttentionPause() {
+      const curPaused = currentState?.v6_attention?.tracking_paused || false;
+      const res = await fetch('/api/v6/attention/pause', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', paused: !curPaused})
+      });
+      const data = await res.json();
+      showOutput(!curPaused ? '⏹ מעקב הקשב הופסק מיידית:' : '▶ מעקב הקשב חודש:', data);
+      await loadOverview();
+    }
+
+    async function runV6SchedulerTick() {
+      const current_time = document.getElementById('sched-time').value.trim() || '18:00';
+      const res = await fetch('/api/v6/scheduler/tick', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', current_time, auto_backup: false})
+      });
+      const data = await res.json();
+      showOutput(`⏱ סריקת מתזמן השרת לשעה ${current_time}:`, data);
       await loadOverview();
     }
 

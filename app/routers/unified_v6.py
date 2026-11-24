@@ -162,6 +162,24 @@ class SyncOfflineQueueRequest(BaseModel):
     queued_actions: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class LogAttentionSelfReportRequest(BaseModel):
+    user_id: str = "moshe"
+    category: str = Field(default="worked", description="worked | browsed | break")
+    context_note: str | None = None
+
+
+class ToggleAttentionPauseRequest(BaseModel):
+    user_id: str = "moshe"
+    paused: bool = True
+
+
+class SchedulerTickRequest(BaseModel):
+    user_id: str = "moshe"
+    target_date: str | None = None
+    current_time: str = "18:00"
+    auto_backup: bool = False
+
+
 @router.get("/today-screen", operation_id="getV6TodayScreen")
 def get_today_screen(user_id: str = "moshe", target_date: str | None = None, current_time: str = "09:30") -> dict[str, Any]:
     return UnifiedV6Service().get_today_screen(user_id=user_id, target_date=target_date, current_time=current_time)
@@ -378,4 +396,42 @@ def sync_offline_queue(request: SyncOfflineQueueRequest) -> dict[str, Any]:
 @router.post("/backup/create", operation_id="createV6VerifiedDbBackup")
 def create_verified_db_backup(user_id: str = "moshe") -> dict[str, Any]:
     return UnifiedV6Service().create_verified_db_backup(user_id=user_id)
+
+
+@router.get("/attention", operation_id="getV6AttentionState")
+def get_attention_state(user_id: str = "moshe") -> dict[str, Any]:
+    return UnifiedV6Service().get_attention_state(user_id=user_id)
+
+
+@router.post("/attention/report", operation_id="logV6AttentionSelfReport")
+def log_attention_self_report(request: LogAttentionSelfReportRequest) -> dict[str, Any]:
+    try:
+        return UnifiedV6Service().log_attention_self_report(
+            user_id=request.user_id,
+            category=request.category,
+            context_note=request.context_note,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/attention/pause", operation_id="toggleV6AttentionPause")
+def toggle_attention_pause(request: ToggleAttentionPauseRequest) -> dict[str, Any]:
+    return UnifiedV6Service().toggle_attention_pause(user_id=request.user_id, paused=request.paused)
+
+
+@router.post("/scheduler/tick", operation_id="runV6ServerSchedulerTick")
+def run_server_scheduler_tick(request: SchedulerTickRequest) -> dict[str, Any]:
+    return UnifiedV6Service().run_server_scheduler_tick(
+        user_id=request.user_id,
+        target_date=request.target_date,
+        current_time=request.current_time,
+        auto_backup=request.auto_backup,
+    )
+
+
+@router.post("/bootstrap/day-one", operation_id="bootstrapV6PersonalDayOne")
+def bootstrap_personal_day_one(user_id: str = "moshe", target_date: str | None = None) -> dict[str, Any]:
+    return UnifiedV6Service().bootstrap_personal_day_one(user_id=user_id, target_date=target_date)
+
 

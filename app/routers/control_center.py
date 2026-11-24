@@ -171,6 +171,7 @@ def get_control_center_overview(user_id: str = Query(default="moshe")) -> dict[s
     v6_intent = v6_svc.get_morning_intent(user_id=user_id)
     v6_energy = v6_svc.get_energy_4d_summary(user_id=user_id)
     v6_learning = v6_svc.analyze_anti_drift_and_recommendations(user_id=user_id)
+    v6_attention = v6_svc.get_attention_state(user_id=user_id)
 
     try:
         services_status = local_system_status()
@@ -211,6 +212,7 @@ def get_control_center_overview(user_id: str = Query(default="moshe")) -> dict[s
         "v6_morning_intent": v6_intent,
         "v6_energy_4d": v6_energy,
         "v6_learning": v6_learning,
+        "v6_attention": v6_attention,
     }
 
 

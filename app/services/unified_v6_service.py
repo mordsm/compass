@@ -2348,3 +2348,350 @@ class UnifiedV6Service:
             "restorable": integrity == "ok" or integrity == "ok_in_memory",
         }
 
+    # =========================================================================
+    # PHASE 5 & DAY-1 BOOTSTRAP: One-Click Attention Self-Report, Server Scheduler
+    # & Personal Day-1 Bootstrap (4 Frogs + Core Daily Activities + Scheduled Media)
+    # =========================================================================
+
+    def get_attention_state(self, user_id: str = "moshe") -> dict[str, Any]:
+        now = utc_now()
+        with db() as conn:
+            row = conn.execute("select * from v6_attention_settings where user_id = ?", (user_id,)).fetchone()
+            if not row:
+                conn.execute(
+                    """
+                    insert into v6_attention_settings
+                    (user_id, tracking_paused, allow_browsing_content_collection, allow_screenshots, updated_at)
+                    values (?, ?, ?, ?, ?)
+                    """,
+                    (user_id, 0, 0, 0, now),
+                )
+                row = conn.execute("select * from v6_attention_settings where user_id = ?", (user_id,)).fetchone()
+            reports = conn.execute(
+                "select * from v6_attention_self_reports where user_id = ? order by occurred_at desc limit 15",
+                (user_id,),
+            ).fetchall()
+
+        counts = {"worked": 0, "browsed": 0, "break": 0}
+        for r in reports:
+            cat = r["category"]
+            if cat in counts:
+                counts[cat] += 1
+
+        return {
+            "success": True,
+            "user_id": user_id,
+            "tracking_paused": bool(row["tracking_paused"]),
+            "allow_browsing_content_collection": False,
+            "allow_screenshots": False,
+            "privacy_policy_he": "איסור מוחלט כברירת מחדל על איסוף תוכן גלישה או צילומי מסך; דיווח עצמי אופציונלי בלבד ללא הסקת רצף בין דיווחים.",
+            "counts": counts,
+            "recent_reports": [
+                {
+                    "report_id": r["report_id"],
+                    "category": r["category"],
+                    "context_note": r["context_note"],
+                    "occurred_at": r["occurred_at"],
+                }
+                for r in reports
+            ],
+        }
+
+    def log_attention_self_report(
+        self,
+        *,
+        user_id: str = "moshe",
+        category: str,
+        context_note: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Section 15:
+        Optional one-click self-report: 'worked' (עבדתי) | 'browsed' (גלשתי) | 'break' (הפסקה).
+        - Respects immediate stop button (`tracking_paused`).
+        - Does not interpret browsing as distraction without context.
+        """
+        state = self.get_attention_state(user_id=user_id)
+        if state["tracking_paused"]:
+            return {
+                "success": False,
+                "status": "tracking_paused",
+                "message_he": "מעקב הקשב מושהה כעת (כפתור עצירת מעקב פעיל). חדש מעקב אם ברצונך לתעד דיווח עצמי.",
+                "attention_state": state,
+            }
+        if category not in {"worked", "browsed", "break"}:
+            raise ValueError("category must be 'worked', 'browsed', or 'break'")
+
+        report_id = resource_id("v6_attn")
+        now = utc_now()
+        with db() as conn:
+            conn.execute(
+                """
+                insert into v6_attention_self_reports
+                (report_id, user_id, category, context_note, occurred_at)
+                values (?, ?, ?, ?, ?)
+                """,
+                (report_id, user_id, category, context_note, now),
+            )
+        updated = self.get_attention_state(user_id=user_id)
+        return {
+            "success": True,
+            "report_id": report_id,
+            "category": category,
+            "assumed_distraction": False,
+            "inferred_continuous_activity": False,
+            "attention_state": updated,
+        }
+
+    def toggle_attention_pause(self, *, user_id: str = "moshe", paused: bool) -> dict[str, Any]:
+        self.get_attention_state(user_id=user_id)
+        now = utc_now()
+        with db() as conn:
+            conn.execute(
+                "update v6_attention_settings set tracking_paused = ?, updated_at = ? where user_id = ?",
+                (1 if paused else 0, now, user_id),
+            )
+        return self.get_attention_state(user_id=user_id)
+
+    def run_server_scheduler_tick(
+        self,
+        *,
+        user_id: str = "moshe",
+        target_date: str | None = None,
+        current_time: str = "18:00",
+        auto_backup: bool = False,
+    ) -> dict[str, Any]:
+        """
+        Section 16:
+        Persistent server-side scheduler tick:
+        - Runs post-sleep catch-up automatically if not yet run today.
+        - Checks all today instances whose `check_time <= current_time`.
+        - Never sends duplicate alerts for already-completed activities.
+        - Optionally creates a verified daily DB backup.
+        """
+        day_str = target_date or date.today().isoformat()
+        context = self.get_context_mode(user_id=user_id)
+        catchup_executed = False
+        if not context["last_catchup_at"] or not str(context["last_catchup_at"]).startswith(day_str):
+            self.run_post_sleep_catchup(user_id=user_id, target_date=day_str, wake_time=current_time)
+            catchup_executed = True
+
+        today_screen = self.get_today_screen(user_id=user_id, target_date=day_str, current_time=current_time)
+        evaluations: list[dict[str, Any]] = []
+        clarifications = 0
+
+        for inst in today_screen["all_instances"]:
+            if inst["check_time"] <= current_time:
+                ev = self.evaluate_daily_activity_rule_at_check_time(
+                    inst["instance_id"],
+                    user_id=user_id,
+                    check_time=current_time,
+                )
+                evaluations.append(ev)
+                if ev.get("alert_sent"):
+                    clarifications += 1
+
+        backup_info = None
+        if auto_backup:
+            backup_info = self.create_verified_db_backup(user_id=user_id)
+
+        run_id = resource_id("v6_sched")
+        now = utc_now()
+        with db() as conn:
+            conn.execute(
+                """
+                insert into v6_scheduler_runs
+                (run_id, user_id, run_date, run_time, checked_instances_count,
+                 clarifications_triggered, catchup_executed, backup_created, summary_json, created_at)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    run_id,
+                    user_id,
+                    day_str,
+                    current_time,
+                    len(evaluations),
+                    clarifications,
+                    1 if catchup_executed else 0,
+                    1 if backup_info else 0,
+                    json_dump({"evaluations": evaluations, "backup": backup_info}),
+                    now,
+                ),
+            )
+
+        return {
+            "success": True,
+            "run_id": run_id,
+            "user_id": user_id,
+            "date": day_str,
+            "current_time": current_time,
+            "catchup_executed": catchup_executed,
+            "checked_instances_count": len(evaluations),
+            "clarifications_or_completions_triggered": clarifications,
+            "backup_created": bool(backup_info),
+            "evaluations": evaluations,
+        }
+
+    def bootstrap_personal_day_one(self, user_id: str = "moshe", target_date: str | None = None) -> dict[str, Any]:
+        """
+        Day-1 Personal Bootstrap:
+        Populates the user's real initial daily setup in one click (idempotent):
+        1. 4 active Frogs (1 ongoing pull-ups/weights frog + 3 high-leverage one-time frogs).
+        2. Core daily V6 activities with open/preferred/check times (Free writing 06:00->09:10->10:00,
+           AI deep work 09:30->10:30->14:00, Daily physical activity 07:00->17:00->18:00).
+        3. Syncs Self-Manage morning exercises and closes the 11:00 inquiry task.
+        4. Creates 3 scheduled messages/media items (07:00 Morning Infographic, 12:00 Mental Audio Pause, 18:00 Evening Question).
+        """
+        from app.services.frogs_service import FrogsService
+
+        day_str = target_date or date.today().isoformat()
+        frogs_svc = FrogsService()
+        current_frogs = frogs_svc.list_frogs(user_id=user_id, status="active")
+
+        seed_frogs = [
+            {
+                "name": "אימון מתח ומשקולות",
+                "frog_type": "ongoing",
+                "domain": "physical",
+                "importance": 10,
+                "resistance_level": 8,
+                "urgency": 8,
+                "estimated_minutes": 20,
+            },
+            {
+                "name": "סגירת ניסוי וארכיטקטורת סוכני AI",
+                "frog_type": "one_time",
+                "domain": "ai_professional",
+                "importance": 9,
+                "resistance_level": 7,
+                "urgency": 8,
+                "estimated_minutes": 30,
+            },
+            {
+                "name": "שיחה או תיאום מורכב שנדחה",
+                "frog_type": "one_time",
+                "domain": "mental",
+                "importance": 8,
+                "resistance_level": 8,
+                "urgency": 7,
+                "estimated_minutes": 15,
+            },
+            {
+                "name": "טיפול במשימה בירוקרטית/פיננסית מעיקה",
+                "frog_type": "one_time",
+                "domain": "core",
+                "importance": 7,
+                "resistance_level": 8,
+                "urgency": 7,
+                "estimated_minutes": 20,
+            },
+        ]
+        existing_frog_names = {f["name"] for f in current_frogs["frogs"]}
+        created_frogs = 0
+        for sf in seed_frogs:
+            if sf["name"] not in existing_frog_names and (current_frogs["active_count"] + created_frogs) < 4:
+                frogs_svc.create_frog({"user_id": user_id, **sf})
+                created_frogs += 1
+
+        # Seed core V6 daily activities
+        existing_tpl_names = {t["name"] for t in self.list_activity_templates(user_id=user_id, status="all")}
+        core_activities = [
+            {
+                "name": "כתיבה חופשית על נייר",
+                "aliases": ["כתיבה חופשית", "כתיבת בוקר"],
+                "open_time": "06:00",
+                "preferred_time": "09:10",
+                "check_time": "10:00",
+                "estimated_minutes": 15,
+                "minimum_viable_version": "3 שורות כתיבה חופשית על נייר",
+                "goal_ids": ["mental"],
+            },
+            {
+                "name": "סשן עומק ופיתוח ב-AI",
+                "aliases": ["עומק AI", "למידת AI"],
+                "open_time": "09:30",
+                "preferred_time": "10:30",
+                "check_time": "14:00",
+                "estimated_minutes": 45,
+                "minimum_viable_version": "10 דקות קריאה או בדיקת קוד סוכן",
+                "goal_ids": ["ai_professional"],
+            },
+            {
+                "name": "פעילות גופנית יומית (מתח / כוח / הליכה)",
+                "aliases": ["פעילות גופנית", "אימון יומי"],
+                "open_time": "07:00",
+                "preferred_time": "17:00",
+                "check_time": "18:00",
+                "estimated_minutes": 25,
+                "minimum_viable_version": "סט מתח בודד או 5 דקות תנועה",
+                "goal_ids": ["physical"],
+            },
+        ]
+        created_activities = 0
+        for ca in core_activities:
+            if ca["name"] not in existing_tpl_names:
+                self.create_activity_template({"user_id": user_id, "instance_date": day_str, **ca})
+                created_activities += 1
+
+        # Sync Self-Manage morning exercises
+        sm_sync = self.sync_self_manage_morning_exercises(
+            user_id=user_id,
+            target_date=day_str,
+            mark_11am_inquiry_resolved=True,
+        )
+
+        # Seed 3 scheduled messages / media items if none exist
+        existing_msgs = self.list_scheduled_messages(user_id=user_id)
+        created_msgs = 0
+        if not existing_msgs:
+            m_info = self.register_media_asset(
+                {
+                    "user_id": user_id,
+                    "title": "אינפוגרפיקת מיקוד בוקר (07:00)",
+                    "media_type": "infographic",
+                    "mime_type": "image/png",
+                    "file_path_or_url": "/media/morning_focus_0700.png",
+                    "size_bytes": 40960,
+                }
+            )["media"]
+            self.create_scheduled_message(
+                {
+                    "user_id": user_id,
+                    "name": "אינפוגרפיקת בוקר 07:00",
+                    "media_id": m_info["media_id"],
+                    "media_blocks": [{"block_type": "infographic", "media_id": m_info["media_id"], "title": m_info["title"]}],
+                    "schedule_times": ["07:00"],
+                    "display_mode": "media",
+                }
+            )
+            self.create_scheduled_message(
+                {
+                    "user_id": user_id,
+                    "name": "עצירה ונשימה מנטלית 12:00",
+                    "text_content": "עצור ל-30 שניות, שים לב לתחושה בגוף, ונשום ברוגע לפני המשך היום.",
+                    "schedule_times": ["12:00"],
+                    "display_mode": "tts",
+                }
+            )
+            self.create_scheduled_message(
+                {
+                    "user_id": user_id,
+                    "name": "שאלת רפלקציה וסיכום 18:00",
+                    "text_content": "מה היה משמעותי היום, ואיזה ניצחון שקט תרצה לציין?",
+                    "schedule_times": ["18:00"],
+                    "display_mode": "tts",
+                }
+            )
+            created_msgs = 3
+
+        return {
+            "success": True,
+            "user_id": user_id,
+            "date": day_str,
+            "created_frogs_count": created_frogs,
+            "created_core_activities_count": created_activities,
+            "self_manage_imported_count": sm_sync["imported_count"],
+            "created_scheduled_messages_count": created_msgs,
+            "message_he": "חבילת היום הראשון (4 צפרדעים, פעילויות ליבה עם שעות פתיחה/בדיקה, תרגילי בוקר מ-Self-Manage ו-3 תזמוני מדיה/הקראה) אותחלה בהצלחה!",
+        }
+
+

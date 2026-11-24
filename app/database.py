@@ -874,6 +874,35 @@ def init_db() -> None:
                 compass_instance_id text not null,
                 created_at text not null
             );
+
+            create table if not exists v6_attention_self_reports (
+                report_id text primary key,
+                user_id text not null,
+                category text not null,
+                context_note text,
+                occurred_at text not null
+            );
+
+            create table if not exists v6_attention_settings (
+                user_id text primary key,
+                tracking_paused integer not null,
+                allow_browsing_content_collection integer not null,
+                allow_screenshots integer not null,
+                updated_at text not null
+            );
+
+            create table if not exists v6_scheduler_runs (
+                run_id text primary key,
+                user_id text not null,
+                run_date text not null,
+                run_time text not null,
+                checked_instances_count integer not null,
+                clarifications_triggered integer not null,
+                catchup_executed integer not null,
+                backup_created integer not null,
+                summary_json text not null,
+                created_at text not null
+            );
             """
         )
 
