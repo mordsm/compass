@@ -23,7 +23,7 @@
       background: var(--bg);
       color: var(--text);
       padding: 20px;
-      line-height: 1.5;
+      line-height: 1.55;
     }
     header {
       display: flex;
@@ -36,7 +36,42 @@
       margin-bottom: 20px;
     }
     h1 { margin: 0; font-size: 1.6rem; color: var(--accent); }
-    h2 { margin-top: 0; font-size: 1.12rem; color: #e2e8f0; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+    .card-header h2 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: #e2e8f0;
+    }
+    .help-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      min-width: 26px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #38bdf8, #0284c7);
+      color: #0f172a;
+      border: 2px solid #bae6fd;
+      font-weight: 800;
+      font-size: 0.92rem;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      padding: 0;
+    }
+    .help-btn:hover {
+      transform: scale(1.12);
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.65);
+    }
     .badge {
       display: inline-block;
       padding: 3px 9px;
@@ -128,6 +163,69 @@
       font-size: 0.84rem;
       gap: 6px;
     }
+    /* Help Modal Styles */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-content {
+      background: #1e293b;
+      border: 2px solid var(--accent);
+      border-radius: 14px;
+      max-width: 780px;
+      width: 100%;
+      max-height: 86vh;
+      overflow-y: auto;
+      padding: 22px 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+    .modal-header h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      color: var(--accent);
+    }
+    .help-section {
+      margin-bottom: 14px;
+      background: #0b1120;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .help-section h4 {
+      margin: 0 0 6px 0;
+      color: #38bdf8;
+      font-size: 0.96rem;
+    }
+    .help-section p, .help-section ul {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #e2e8f0;
+    }
+    .help-section ul {
+      padding-right: 20px;
+      margin-top: 6px;
+    }
+    .help-section li {
+      margin-bottom: 5px;
+    }
   </style>
 </head>
 <body>
@@ -135,7 +233,7 @@
     <div>
       <h1>🧭 Compass – System Control Center</h1>
       <div style="color: var(--muted); font-size: 0.9rem;">
-        מרכז בקרה אינטראקטיבי: עריכת מדיניות, צפרדעים, הרגלים, תחומי צמיחה, אתגרים, אירועים מנטליים ובניית כללים דטרמיניסטיים
+        מרכז בקרה אינטראקטיבי: לחץ על סמל ה-<span class="help-btn" style="width:20px;height:20px;min-width:20px;font-size:0.75rem;cursor:default;">?</span> בכל קובייה להסבר מלא (מה היא, למה, איך זה עובד ודוגמא)
       </div>
     </div>
     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
@@ -154,7 +252,10 @@
     <!-- Card 1: Policy & Autonomy -->
     <div class="card">
       <div>
-        <h2>⚙️ 1. מדיניות, תפקיד וגבולות אוטונומיה</h2>
+        <div class="card-header">
+          <h2>⚙️ 1. מדיניות, תפקיד וגבולות אוטונומיה</h2>
+          <button class="help-btn" onclick="openHelp('card1')" title="הסבר על קובייה 1">?</button>
+        </div>
         <div id="policy-box">טוען...</div>
       </div>
       <div class="form-box">
@@ -172,7 +273,10 @@
     <!-- Card 2: Frogs Pool -->
     <div class="card">
       <div>
-        <h2>🐸 2. מאגר צפרדעים (Eat That Frog)</h2>
+        <div class="card-header">
+          <h2>🐸 2. מאגר צפרדעים (Eat That Frog)</h2>
+          <button class="help-btn" onclick="openHelp('card2')" title="הסבר על קובייה 2">?</button>
+        </div>
         <div id="frogs-box">טוען...</div>
       </div>
       <div class="form-box">
@@ -201,7 +305,10 @@
     <!-- Card 3: Routines & 6-Step Prep Protocol -->
     <div class="card">
       <div>
-        <h2>🔄 3. הרגלים ופרוטוקול הכנה (6 שלבים)</h2>
+        <div class="card-header">
+          <h2>🔄 3. הרגלים ופרוטוקול הכנה (6 שלבים)</h2>
+          <button class="help-btn" onclick="openHelp('card3')" title="הסבר על קובייה 3">?</button>
+        </div>
         <div id="routines-box">טוען...</div>
       </div>
       <div class="form-box">
@@ -229,7 +336,10 @@
     <!-- Card 4: Growth Domains -->
     <div class="card">
       <div>
-        <h2>🌱 4. תחומי התפתחות (ליבה מול העשרה)</h2>
+        <div class="card-header">
+          <h2>🌱 4. תחומי התפתחות (ליבה מול העשרה)</h2>
+          <button class="help-btn" onclick="openHelp('card4')" title="הסבר על קובייה 4">?</button>
+        </div>
         <div id="growth-box">טוען...</div>
       </div>
       <div class="form-box">
@@ -261,7 +371,10 @@
     <!-- Card 5: Adaptive Challenges & Playfulness -->
     <div class="card">
       <div>
-        <h2>🎯 5. אתגרים אדפטיביים ומשחקיות לא-תחרותית</h2>
+        <div class="card-header">
+          <h2>🎯 5. אתגרים אדפטיביים ומשחקיות לא-תחרותית</h2>
+          <button class="help-btn" onclick="openHelp('card5')" title="הסבר על קובייה 5">?</button>
+        </div>
         <div id="challenges-box">טוען...</div>
       </div>
       <div class="form-box">
@@ -285,7 +398,10 @@
     <!-- Card 6: Mental Progress & Silent Wins -->
     <div class="card">
       <div>
-        <h2>🧠 6. אימון מנטלי, ניצחונות שקטים והערכה רב-חודשית</h2>
+        <div class="card-header">
+          <h2>🧠 6. אימון מנטלי, ניצחונות שקטים והערכה רב-חודשית</h2>
+          <button class="help-btn" onclick="openHelp('card6')" title="הסבר על קובייה 6">?</button>
+        </div>
         <div id="mental-box">טוען...</div>
       </div>
       <div class="form-box">
@@ -307,7 +423,10 @@
     <!-- Card 7: Voice & Telegram Quick Capture -->
     <div class="card">
       <div>
-        <h2>🎙 7. קליטה מהירה (קול / טלגרם – Rule Engine First)</h2>
+        <div class="card-header">
+          <h2>🎙 7. קליטה מהירה (קול / טלגרם – Rule Engine First)</h2>
+          <button class="help-btn" onclick="openHelp('card7')" title="הסבר על קובייה 7">?</button>
+        </div>
         <div style="display:flex; gap:8px; margin-bottom:10px;">
           <input id="quick-input" type="text" placeholder="לדוגמה: ניצחון שקט: עצרתי לפני תגובה / מה הפעולה הבאה" style="flex:1;" />
           <button onclick="sendQuickCapture()">שלח</button>
@@ -322,7 +441,10 @@
     <!-- Card 8: Connected Services & TaskCommander -->
     <div class="card">
       <div>
-        <h2>🔌 8. שירותים מחוברים ו-TaskCommander</h2>
+        <div class="card-header">
+          <h2>🔌 8. שירותים מחוברים ו-TaskCommander</h2>
+          <button class="help-btn" onclick="openHelp('card8')" title="הסבר על קובייה 8">?</button>
+        </div>
         <div id="services-box">טוען...</div>
       </div>
       <div class="form-box">
@@ -337,7 +459,10 @@
 
   <!-- Card 9: Rules Catalog & Rule Builder -->
   <div class="card" style="margin-bottom: 20px;">
-    <h2>📜 9. קטלוג כללים פעילים ובונה חוקים דטרמיניסטיים (Rules Catalog & Builder)</h2>
+    <div class="card-header">
+      <h2>📜 9. קטלוג כללים פעילים ובונה חוקים דטרמיניסטיים (Rules Catalog & Builder)</h2>
+      <button class="help-btn" onclick="openHelp('card9')" title="הסבר מלא על קובייה 9, האם החוקים אמיתיים ואיך בונים אותם">?</button>
+    </div>
     <div class="form-box" style="margin-top:0; margin-bottom:14px; border-top:none; background:#0b1120; padding:12px; border-radius:8px;">
       <div style="font-weight:600; margin-bottom:8px; color:var(--accent);">➕ בניית חוק דטרמיניסטי חדש במנוע הכללים (מצב מתכנן):</div>
       <div class="form-row">
@@ -407,18 +532,152 @@
   <!-- Card 10 & 11: Decisions, Pending Approvals & Inspector -->
   <div class="grid">
     <div class="card">
-      <h2>⚖️ 10. החלטות אחרונות ואישורים ממתינים</h2>
-      <div id="approvals-box" style="margin-bottom:10px;"></div>
-      <div id="decisions-box">טוען...</div>
+      <div>
+        <div class="card-header">
+          <h2>⚖️ 10. החלטות אחרונות ואישורים ממתינים</h2>
+          <button class="help-btn" onclick="openHelp('card10')" title="הסבר על קובייה 10">?</button>
+        </div>
+        <div id="approvals-box" style="margin-bottom:10px;"></div>
+        <div id="decisions-box">טוען...</div>
+      </div>
     </div>
     <div class="card">
-      <h2>🔍 11. מבקר החלטות / היסטוריית גרסאות / פלט מחזורים</h2>
-      <pre id="inspector-box">בחר החלטה, כלל או הרץ מחזור כדי לצפות בפירוט המלא.</pre>
+      <div>
+        <div class="card-header">
+          <h2>🔍 11. מבקר החלטות / היסטוריית גרסאות / פלט מחזורים</h2>
+          <button class="help-btn" onclick="openHelp('card11')" title="הסבר על קובייה 11">?</button>
+        </div>
+        <pre id="inspector-box">בחר החלטה, כלל או הרץ מחזור כדי לצפות בפירוט המלא.</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Modal Popup -->
+  <div id="help-modal" class="modal-overlay" onclick="if(event.target===this) closeHelp()">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="help-modal-title">הסבר</h3>
+        <button class="secondary" onclick="closeHelp()">✕ סגור</button>
+      </div>
+      <div id="help-modal-body"></div>
     </div>
   </div>
 
   <script>
     let currentState = null;
+
+    const HELP_CONTENT = {
+      card1: {
+        title: "⚙️ קובייה 1: מדיניות, תפקיד וגבולות אוטונומיה",
+        what: "לוח השליטה המרכזי על 'גבולות הגזרה' שאתה מרשה למערכת להפעיל מולך, והחלפת הכובע שלך בין מתכנן (Planner) למבצע (Executor).",
+        why: "כדי שבזמן אמת (באמצע היום, כשאתה עייף או נמנע ממשימה) לא תתחיל לשנות חוקים או לבטל הרגלים ('בריחה לתכנון'), ומנגד – כדי שהמערכת לעולם לא תעמיס עליך מעבר לתקרת הזמן והקושי שקבעת מראש.",
+        how: "נשמר בטבלת user_autonomy_policy. מעבר למצב מבצע (Executor) חוסם יצירת הרגלים או חוקים חדשים (כלל CONTROL-002). שינוי מהותי בתקרת הדקות או בתקרת הקושי של האתגרים נבדק מול הכלל CONTROL-001.",
+        example: "אתה קובע במצב מתכנן: תקרת דקות יומית = 120 דק׳ ותקרת קושי אתגר = רמה 5. אם מחר תוכנית הבוקר תגיע ל-150 דקות, המערכת תעצור ולא תפעיל אותה אוטומטית אלא תבקש את אישורך (PLAN-002)."
+      },
+      card2: {
+        title: "🐸 קובייה 2: מאגר צפרדעים (Eat That Frog)",
+        what: "מאגר הפעולות החשובות שאתה נוטה לדחות בגלל אי-נעימות, מתח מקדים או קושי בהתחלה (ולא סתם כל משימה ארוכה).",
+        why: "התמודדות פרואקטיבית עם הימנעות. המערכת דואגת שתמיד יהיו במאגר לפחות 4 צפרדעים פעילות לבחירה, ומבחינה בין צפרדע חד-פעמית (שנסגרת ברגע שבוצעה) לבין צפרדע מתמשכת (פעולה חוזרת כמו אימון מתח/משקולות שנשארת במאגר גם אחרי שביצעת אותה היום, עד שההתנגדות הרגשית אליה נעלמת).",
+        how: "<ul><li><strong>בבוקר (FROG-002):</strong> מנוע הכללים משקלל חשיבות, התנגדות, דחיפות, אנרגיה וזמן זמין ובוחר צפרדע יומית אחת לשעות הבוקר.</li><li><strong>בסיום ביצוע (FROG-003):</strong> לחיצה על 'בוצע ✓' סוגרת צפרדע חד-פעמית, אך משאירה צפרדע מתמשכת כפעילה (active) ולא מסירה אותה ללא אישור מפורש שלך (FROG-004).</li><li><strong>בערב (FROG-001):</strong> אם ירדת מתחת ל-4 צפרדעים, המערכת מבקשת ממך להוסיף חדשות – ולעולם אינה ממציאה צפרדעים בעצמה.</li></ul>",
+        example: "הוספת שתי צפרדעים: 1) 'שיחת משוב מורכבת' (חד-פעמית, התנגדות 8), 2) 'אימון מתח ומשקולות' (מתמשכת, התנגדות 8). כשלחצת 'בוצע ✓' על השיחה – היא נסגרה. כשלחצת 'בוצע ✓' על אימון המתח – נרשמה השלמה, והיא נשארת במאגר הפעיל גם למחר."
+      },
+      card3: {
+        title: "🔄 קובייה 3: הרגלים ופרוטוקול הכנה (6 שלבים)",
+        what: "ניהול השגרות הקבועות שלך (Routines) יחד עם פרוטוקול הכנה קצר בן 6 שלבים להפחתת התנגדות לפני פעולה מאתגרת.",
+        why: "רוב ההרגלים נשברים בגלל גישת 'הכול או כלום' או בגלל מתח גופני לפני תחילת הפעולה. הקובייה הזו נותנת לך לכל הרגל גרסה מינימלית (Minimum Viable Version) לימים קשים, מאפשרת דילוג ללא ענישה (שאינו מאפס את הרצף הגמיש שלך!), ומצמידה אוטומטית פרוטוקול הרגעה של 45 שניות לפני פעולה עם התנגדות גבוהה.",
+        how: "<ul><li><strong>פרוטוקול 6 השלבים (MENTAL-001):</strong> 1. עצירה קצרה -> 2. זיהוי תחושה בגוף -> 3. נשימה רגועה (30–60 שניות) -> 4. מיקוד בפעולה הראשונה ולא בתוצאה -> 5. התחלה בטוחה -> 6. זיהוי התחושה אחרי. (הפתיח הנעים מוגבל לעד 90 שניות כדי שלא יהפוך לתירוץ לדחיינות).</li><li><strong>כלל HABIT-001:</strong> כשיש התנגדות גבוהה או אנרגיה נמוכה, המערכת מציעה אוטומטית את הגרסה המינימלית.</li></ul>",
+        example: "יצרת הרגל 'תרגול כוח בוקר' שגרסתו המלאה היא 20 דקות, והגרסה המינימלית שלו היא 'סט מתח אחד או 2 דקות מתיחה'. ביום עמוס לחצת על 'מינימלי' – הרצף הגמיש שלך (flexible_streak_count) עלה ב-1! ביום שבו היית חולה לחצת 'דלג (ללא קנס)' – הרצף נשמר ולא התאפס ל-0."
+      },
+      card4: {
+        title: "🌱 קובייה 4: תחומי התפתחות (ליבה מול העשרה)",
+        what: "היררכיית המטרות ארוכות הטווח שלך, המחולקת ל-3 תחומי ליבה (Core, משקל 10) מול 4 תחומי העשרה (Enrichment, משקל 4).",
+        why: "כדי שהמערכת תדע שבישול, גינון, נגינה או ציור (העשרה, רמת התערבות נמוכה) חשובים להנאה שלך אך לעולם לא יקבלו משקל זהה להתפתחות מנטלית, התפתחות פיזית והתפתחות מקצועית ב-AI (ליבה). בנוסף, היא מזהה כאשר הלמידה המעמיקה שלך ב-AI כבר מכסה את הצורך בגירוי קוגניטיבי (GROWTH-001) כך שלא יוצעו לך אימוני מוח מיותרים.",
+        how: "בכל סיכום שבועי מופעל הכלל GROWTH-002: אם תחום ליבה לא תורגל 7 ימים, נוצרת אוטומטית הצעת התערבות לשבץ פעולת כניסה של 5–10 דקות למחרת בבוקר.",
+        example: "תחום 'התפתחות מנטלית' נמצא ברמה 4 מתוך יעד 8. אם לא תיעדת פעילות מנטלית במשך שבוע, המערכת תתריע בסיכום השבועי על הזנחת תחום ליבה ותציע תרגיל קצר למחר בבוקר."
+      },
+      card5: {
+        title: "🎯 קובייה 5: אתגרים אדפטיביים ומשחקיות לא-תחרותית",
+        what: "מנוע אתגרים מתפתח (Adaptive Challenges) שמעלה או מוריד את רמת הקושי בהתאם לביצועים שלך, לצד ניקוד משחקי אישי (Playful Engagement).",
+        why: "כדי ליצור עניין ותחושת התקדמות בלי ליפול לעומס יתר או פציעה, ובלי להפוך את המשחקיות למדד שיפוטי או אבחוני.",
+        how: "<ul><li>3 השלמות רצופות במאמץ סביר מעלות את רמת הקושי בדרגה 1 (CHALLENGE-001), אך לעולם לא מעל תקרת הקושי שאישרת במדיניות.</li><li><strong>בטיחות מעל הכול (CHALLENGE-002):</strong> לחיצה על כפתור 'דווח כאב/מגבלה' חוסמת באופן מוחלט כל העלאת עומס גופני ומעבירה את האתגר למצב התאוששות/הפחתת עומס.</li><li>ניקוד המשחקיות מעניק נקודות על עצם התחלת פעולה ועל צליחת התנגדות (0 קנסות תמיד), ומופרד לחלוטין ממדדי Assessment.</li></ul>",
+        example: "יצרת אתגר '5 עליות מתח נקיות' ברמת קושי 3. אם דיווחת על כאב בכתף ('דווח כאב/מגבלה'), גם אם ביקשת להעלות רמה – הכלל CHALLENGE-002 חוסם את ההעלאה ומשאיר/מוריד את העומס."
+      },
+      card6: {
+        title: "🧠 קובייה 6: אימון מנטלי, ניצחונות שקטים והערכה רב-חודשית (Assessment)",
+        what: "המרכז למעבר מתגובתיות אוטומטית לפרואקטיביות, סקרנות ובחירה – כולל תיעוד אירועים מהחיים האמיתיים, זיהוי 'ניצחונות שקטים' (Silent Wins), והפקת דוח מגמה רב-חודשי.",
+        why: "שינוי מנטלי אמיתי מתבטא לא רק באירועים שהתפוצצו, אלא באירועים שבעבר היו גורמים להתפרצות/התגוננות והיום עברו בשקט ('ניצחון שקט'). כמו כן, כאשר אתה מתעד אירוע במהירות, לא תמיד תמלא את כל הציונים (0–10), ואסור למערכת להחשיב ציון חסר כ-0 או להסיק מגמה מ-2 אירועים בלבד.",
+        how: "<ul><li><strong>תיעוד חלקי (MENTAL-002):</strong> שדות מספריים שהשארת ריקים נשמרים במסד הנתונים כ-NULL ומוחרגים ממכנה הממוצע (לעולם לא נספרים כ-0).</li><li><strong>הגנת מדגם קטן (ASSESS-002):</strong> כל עוד יש פחות מ-5 אירועים מתועדים, המערכת מציגה insufficient_data ומסרבת להמציא מגמת שיפור או נסיגה.</li><li><strong>מ-5 אירועים ומעלה (ASSESS-001):</strong> משווה את המחצית הראשונה של התקופה למחצית האחרונה באשכולות אירועים דומים (comparable_event_clusters), ומציגה שקיפות מלאה (כמות נתונים, אחוז שלמות, מגבלות השוואה, רמת ביטחון והבהרה לא-אבחונית).</li><li><strong>בידוד פרטיות:</strong> התוכן המנטלי מסונן ולעולם אינו נשלח לשירותים תפעוליים כמו TaskCommander, mail_manager או economic_manager.</li></ul>",
+        example: "ביקורת בישיבה שהייתה מקפיצה אותך בעבר עברה הפעם בנשימה ושאלה סקרנית. סימנת '✓ ניצחון שקט' ולחצת 'שמור אירוע' (אפילו בלי למלא ציונים). האירוע נספר בניצחונות השקטים ומשוקלל בהערכה החודשית."
+      },
+      card7: {
+        title: "🎙 קובייה 7: קליטה מהירה (קול / טלגרם – Rule Engine First)",
+        what: "שורת פקודה ודיווח מהיר (לדיבור או הודעת טלגרם קצרה) שפועלת קודם כול דרך מנתח פקודות דטרמיניסטי, ועוקבת בנפרד אחרי עלויות LLM מול עלויות דיבור (STT/TTS).",
+        why: "כדי לחסוך עלויות וזמן תגובה (AI-001, AI-002), ולאפשר למערכת לעבוד ב-100% גם כאשר שירות ה-LLM כבוי או לא זמין.",
+        how: "כשאתה מקליד או אומר משפט, המערכת בודקת אותו מול דקדוק הפקודות המובנה. אם זוהתה פקודה, היא מתבצעת ב-0 טוקנים של LLM והמונה 'מעקפים דטרמיניסטיים' עולה ב-1. עלויות תמלול והקראה (STT/TTS) נרשמות בנפרד מעלויות מודל השפה.",
+        example: "הקלד בתיבה: 'ניצחון שקט: עצרתי לפני תגובה אוטומטית בשיחה' ולחץ 'שלח'. תראה ב'מבקר ההחלטות' למטה שהאירוע נשמר מיד ע\"י deterministic_parser עם llm_used: false."
+      },
+      card8: {
+        title: "🔌 קובייה 8: שירותים מחוברים ו-TaskCommander",
+        what: "תמונת החיבור החיה של כלל השירותים באקוסיסטם (rules_engine, task_commander, self_management, assessment וכו׳) וניהול המשימות התפעוליות של היום.",
+        why: "בהתאם להחלטה הארכיטקטונית (D007), TaskCommander מומש ישירות תחת Compass כדי לנהל משימות תפעוליות ומופעים יומיים/שבועיים (today, overdue, done, snooze, skip) ללא תלות בשירות חיצוני חסר.",
+        how: "כל משימה שתוסיף כאן נשמרת בטבלאות tc_tasks ו-tc_task_instances של Compass ומשתלבת אוטומטית בתוכנית הבוקר ובסיכום הערב.",
+        example: "הוסף משימה 'שליחת דוח שבועי' ולחץ 'הוסף משימה'. המשימה תתווסף מיד למצבת המשימות של TaskCommander להיום ותשולב במחזור הבוקר."
+      },
+      card9: {
+        title: "📜 קובייה 9: קטלוג כללים פעילים ובונה חוקים דטרמיניסטיים – האם החוקים אמיתיים ואיך בונים אותם?",
+        what: "<strong>החוקים בקטלוג הם אמיתיים לחלוטין ופעילים בזמן אמת (Live Deterministic Engine) – הם לא טקסט לדוגמא!</strong> כל 37 החוקים בטבלה (17 חוקי הבסיס של Compass ועוד 20 חוקי ההתפתחות הפרואקטיבית FROG-001..004, HABIT-001, MENTAL-001..003, ASSESS-001..002, GROWTH-001..002, CHALLENGE-001..002, PLAN-001..002, AI-001..002, CONTROL-001..002) רצים בפועל בתוך מנוע הכללים (c:\\workspace\\rules_engine\\compass_rules.py).",
+        why: "<ul><li>אם תלחץ על <strong>'השבת'</strong> ליד החוק <code>FROG-001</code> ואז תריץ <strong>'🌙 הרץ סיכום ערב'</strong>, החוק באמת לא יופעל!</li><li>אם תשנה את מספר <strong>העדיפות (Priority)</strong> של חוק בטבלה, מנוע הכללים ישמור מיד <strong>גרסה חדשה (v2)</strong> בטבלת <code>rule_version_history</code> וישנה את סדר הכרעת ההתנגשויות שלו בזמן אמת.</li><li>בלחיצה על <strong>'שחזר ל-v1' (Rollback)</strong>, החוק יחזור למצבו המקורי תוך שמירת גרסה מתועדת (v3).</li></ul>",
+        how: "<strong>איך בנוי כל חוק במנוע הכללים? (4 מרכיבים דטרמיניסטיים):</strong><ul><li><strong>1. אירוע מפעיל (Trigger / event_types):</strong> מתי החוק נבדק? (למשל <code>daily_plan.evaluate</code> כשבונים תוכנית בוקר, או <code>challenge.evaluate</code> כשמדווחים על אתגר).</li><li><strong>2. תנאים (Conditions):</strong> איזה שדה בנתוני האירוע נבדק, באיזה אופרטור (<code>eq</code>, <code>lt</code>, <code>lte</code>, <code>gt</code>, <code>gte</code>, <code>in</code>), ומול איזה ערך? לדוגמה: <code>field: payload.energy_level</code>, <code>operator: lte</code>, <code>value: 2</code>.</li><li><strong>3. עדיפות (Priority):</strong> מספר בין 1 ל-200. כששני חוקים מתאימים לאותו אירוע, החוק עם העדיפות הגבוהה יותר (וחומרת ההחלטה הגבוהה יותר: <code>block</code> &gt; <code>require_approval</code> &gt; <code>allow</code> &gt; <code>recommendation_only</code>) מנצח, וההכרעה נרשמת ביומן ההתנגשויות.</li><li><strong>4. תוצאה (Effect):</strong> מה החוק עושה כשהתנאי מתקיים?<ul><li><code>recommendation_only</code> – מצרף המלצה מותאמת (למשל להציע גרסה מינימלית או פרוטוקול נשימה).</li><li><code>allow</code> – מאשר ביצוע אוטומטי.</li><li><code>require_approval</code> – עוצר את ההפעלה האוטומטית ופותח בקשת אישור למשתמש (בקובייה 10).</li><li><code>block</code> – חוסם פעולה מסוכנת או אסורה (למשל חסימת העלאת עומס גופני בעת כאב <code>CHALLENGE-002</code>).</li></ul></li></ul>",
+        example: "<strong>שתי דרכים ליצור חוק חדש כבר עכשיו:</strong><br/>1) <strong>ישירות מתוך מרכז הבקרה בדפדפן (בתיבה הכהה בראש קובייה 9):</strong> הזן מזהה <code>CUSTOM-001</code>, שם <code>'דרוש אישור לתוכנית בוקר כשהאנרגיה היא 1'</code>, בחר אירוע מפעיל <code>daily_plan.evaluate</code>, שדה <code>payload.energy_level</code>, אופרטור <code>eq</code>, ערך <code>1</code>, ותוצאה <code>require_approval</code>, ולחץ <strong>'בנה ושמור חוק'</strong>. החוק יתווסף מיד לטבלה ויופעל אוטומטית בכל ריצת מחזור בוקר!<br/>2) <strong>בקוד המקור:</strong> בפונקציה <code>proactive_development_rules()</code> בקובץ <code>c:\\workspace\\rules_engine\\compass_rules.py</code> (ומתועד ב-<code>RULES_CATALOG.md</code>)."
+      },
+      card10: {
+        title: "⚖️ קובייה 10: החלטות אחרונות ואישורים ממתינים",
+        what: "יומן השקיפות של כל החלטה שקיבל מנוע הכללים בזמן אמת, ורשימת הפעולות שדורשות אישור מפורש שלך לפני ביצוע.",
+        why: "כדי שלעולם לא תהיה 'קופסה שחורה': כל החלטה של המערכת ניתנת לבדיקה, לאישור או לביטול מיידי על ידך.",
+        how: "כשחוק מחזיר require_approval (למשל תוכנית יומית עמוסה מדי או שינוי מדיניות מהותי), מופיעה בראש הקובייה התראה כתומה עם כפתורי 'אשר ✓' ו-'דחה ✗'. ליד כל החלטה ביומן יש כפתור 'הסבר' וכפתור 'בטל'.",
+        example: "אם הרצת מחזור חודשי שהציע לעדכן את תקרת הדקות היומית ל-210 דקות, תופיע בקשת אישור בראש קובייה 10. רק כשתלחץ 'אשר ✓' המדיניות תתעדכן בפועל."
+      },
+      card11: {
+        title: "🔍 קובייה 11: מבקר ההחלטות (Inspector), היסטוריית גרסאות ופלט מחזורים",
+        what: "חלונית הבקרה המפורטת שמציגה בעברית קריאה וב-JSON מלא את הנימוק הדטרמיניסטי של כל החלטה, את היסטוריית הגרסאות של כל חוק, ואת הסיכומים של מחזורי הבוקר/ערב/שבועי/חודשי.",
+        why: "כדי לאפשר לך לבדוק בדיוק למה המערכת המליצה או חסמה פעולה מסוימת.",
+        how: "לחיצה על 'הסבר' ליד כל החלטה בקובייה 10 מציגה כאן: איזה אירוע הפעיל את הבדיקה, איזה חוק ניצח (rule_id, גרסה ועדיפות), אילו חוקים אחרים נשקלו ונדחו בגלל עדיפות נמוכה יותר (conflicts_resolved), ואילו נתונים בדיוק נבדקו.",
+        example: "לחץ על 'הסבר' ליד החלטת daily_plan.evaluate או לחץ על 'גרסאות' ליד החוק FROG-001 בטבלת החוקים – והפירוט המלא יוצג מיד בחלונית זו."
+      }
+    };
+
+    function openHelp(cardKey) {
+      const info = HELP_CONTENT[cardKey];
+      if (!info) return;
+      document.getElementById('help-modal-title').textContent = info.title;
+      document.getElementById('help-modal-body').innerHTML = `
+        <div class="help-section">
+          <h4>📌 מה היא הקובייה הזו?</h4>
+          <p>${info.what}</p>
+        </div>
+        <div class="help-section">
+          <h4>🎯 למה היא קיימת?</h4>
+          <p>${info.why}</p>
+        </div>
+        <div class="help-section">
+          <h4>⚙️ איך זה עובד מאחורי הקלעים?</h4>
+          <p>${info.how}</p>
+        </div>
+        <div class="help-section">
+          <h4>💡 דוגמא מעשית:</h4>
+          <p>${info.example}</p>
+        </div>
+      `;
+      document.getElementById('help-modal').classList.add('active');
+    }
+
+    function closeHelp() {
+      document.getElementById('help-modal').classList.remove('active');
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeHelp();
+    });
 
     function showOutput(title, payload) {
       document.getElementById('inspector-box').textContent = title + '\n\n' + JSON.stringify(payload, null, 2);
