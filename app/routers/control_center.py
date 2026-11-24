@@ -168,6 +168,9 @@ def get_control_center_overview(user_id: str = Query(default="moshe")) -> dict[s
     v6_media = v6_svc.list_media_assets(user_id=user_id)
     v6_inbox = v6_svc.list_inbox_items(user_id=user_id)
     v6_onboarding = v6_svc.get_next_onboarding_question(user_id=user_id)
+    v6_intent = v6_svc.get_morning_intent(user_id=user_id)
+    v6_energy = v6_svc.get_energy_4d_summary(user_id=user_id)
+    v6_learning = v6_svc.analyze_anti_drift_and_recommendations(user_id=user_id)
 
     try:
         services_status = local_system_status()
@@ -205,6 +208,9 @@ def get_control_center_overview(user_id: str = Query(default="moshe")) -> dict[s
         "v6_media_assets": v6_media,
         "v6_inbox": v6_inbox,
         "v6_onboarding": v6_onboarding,
+        "v6_morning_intent": v6_intent,
+        "v6_energy_4d": v6_energy,
+        "v6_learning": v6_learning,
     }
 
 

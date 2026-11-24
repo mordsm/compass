@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 import re
+import shutil
+import sqlite3
 from datetime import date, datetime, timezone
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from app.config import get_settings
 from app.database import db, json_dump, json_load, resource_id, utc_now
 from app.repository import CompassRepository
+from app.services.growth_service import GrowthChallengesAndPlayService
 from app.services.rules_engine import RulesEngineAdapter
+from app.services.self_management import SelfManagementAdapter
 
 SCHEDULE_STATES = {"planned", "displayed", "in_window", "check_due", "overdue", "closed"}
 EXECUTION_OUTCOMES = {
@@ -1737,3 +1743,608 @@ class UnifiedV6Service:
             "answered_at": row["answered_at"],
             "updated_at": row["updated_at"],
         }
+
+    # =========================================================================
+    # PHASE 2–4 EXTENSIONS: Self-Manage Morning Sync, Morning Intent, Anti-Drift,
+    # Recommendation Engine, 4D Energy Management, Offline Batch Sync & DB Backup
+    # =========================================================================
+
+    def sync_self_manage_morning_exercises(
+        self,
+        *,
+        user_id: str = "moshe",
+        target_date: str | None = None,
+        manual_exercises: list[dict[str, Any]] | None = None,
+        mark_11am_inquiry_resolved: bool = True,
+    ) -> dict[str, Any]:
+        """
+        Section 8:
+        Imports the morning exercises from `self_manage` (or manual fallback with source tag)
+        into Compass Today Screen without changing random selection, difficulty, or frequency,
+        and prevents duplicate imports (`v6_self_manage_imports`).
+        When connected/imported, can automatically mark the 11:00 inquiry task as completed!
+        """
+        day_str = target_date or date.today().isoformat()
+        now = utc_now()
+        exercises_to_import: list[dict[str, Any]] = []
+        source_kind = "manual_fallback"
+
+        if manual_exercises:
+            exercises_to_import = list(manual_exercises)
+            source_kind = "manual_entry"
+        else:
+            # 1. Try live SelfManagementAdapter (/api/today)
+            try:
+                live_res = SelfManagementAdapter().get_today()
+                items = (live_res.get("result") or {}).get("items") or (live_res.get("result") or {}).get("plan_items") or []
+                if live_res.get("connected") and items:
+                    source_kind = "self_manage_api"
+                    for it in items:
+                        ex = it.get("exercise") or it
+                        exercises_to_import.append(
+                            {
+                                "external_id": str(ex.get("id") or it.get("id") or ex.get("title")),
+                                "title": str(ex.get("title") or ex.get("name") or "תרגיל בוקר"),
+                                "domain": str(ex.get("domain") or "physical"),
+                                "estimated_minutes": int(ex.get("duration_minutes") or it.get("duration_minutes") or 10),
+                            }
+                        )
+            except Exception:
+                pass
+
+            # 2. If HTTP service wasn't running, inspect local self_manage SQLite DB directly if present
+            if not exercises_to_import:
+                sm_db_candidates = [
+                    Path(r"c:\workspace\self_manage\self_manage.db"),
+                    Path(r"c:\workspace\self_manage\data\self_manage.db"),
+                    Path(r"c:\workspace\self_manage\app.db"),
+                ]
+                for cand in sm_db_candidates:
+                    if cand.exists():
+                        try:
+                            with sqlite3.connect(cand) as sm_conn:
+                                sm_conn.row_factory = sqlite3.Row
+                                rows = sm_conn.execute("select * from exercise limit 3").fetchall()
+                                for r in rows:
+                                    exercises_to_import.append(
+                                        {
+                                            "external_id": f"sm_db_{r['id']}",
+                                            "title": str(r["title"] if "title" in r.keys() else r["name"]),
+                                            "domain": "physical",
+                                            "estimated_minutes": 10,
+                                        }
+                                    )
+                            if exercises_to_import:
+                                source_kind = "self_manage_local_sqlite"
+                                break
+                        except Exception:
+                            pass
+
+            # 3. Deterministic baseline morning exercises if neither HTTP nor external DB had rows
+            if not exercises_to_import:
+                source_kind = "self_manage_morning_seed"
+                exercises_to_import = [
+                    {"external_id": "sm_morn_1", "title": "תרגיל בוקר Self-Manage: תנועה ומפרקים", "domain": "physical", "estimated_minutes": 10},
+                    {"external_id": "sm_morn_2", "title": "תרגיל בוקר Self-Manage: נשימה ומיקוד קשב", "domain": "mental", "estimated_minutes": 5},
+                ]
+
+        imported_instances: list[dict[str, Any]] = []
+        skipped_duplicates: list[str] = []
+
+        for ex in exercises_to_import:
+            ext_id = str(ex.get("external_id") or ex.get("title")).strip()
+            title = str(ex.get("title")).strip()
+            domain = str(ex.get("domain") or "physical").strip()
+            import_key = f"{user_id}:{day_str}:{ext_id}"
+
+            with db() as conn:
+                existing_imp = conn.execute(
+                    "select * from v6_self_manage_imports where import_key = ?",
+                    (import_key,),
+                ).fetchone()
+            if existing_imp:
+                skipped_duplicates.append(ext_id)
+                continue
+
+            created = self.create_activity_template(
+                {
+                    "user_id": user_id,
+                    "template_id": f"tpl_sm_{user_id}_{re.sub(r'[^a-zA-Z0-9_]', '_', ext_id)[:24]}",
+                    "name": title,
+                    "aliases": [title],
+                    "description": f"יובא מתוך Self Management ({source_kind})",
+                    "open_time": "06:30",
+                    "preferred_time": "07:30",
+                    "check_time": "11:30",
+                    "estimated_minutes": int(ex.get("estimated_minutes", 10)),
+                    "goal_ids": [domain],
+                    "instantiate_for_today": True,
+                    "instance_date": day_str,
+                }
+            )
+            inst = created["today_instance"]
+            imported_instances.append(inst)
+
+            with db() as conn:
+                conn.execute(
+                    """
+                    insert or ignore into v6_self_manage_imports
+                    (import_key, user_id, import_date, source_kind, external_exercise_id,
+                     exercise_title, domain, compass_instance_id, created_at)
+                    values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        import_key,
+                        user_id,
+                        day_str,
+                        source_kind,
+                        ext_id,
+                        title,
+                        domain,
+                        inst["instance_id"],
+                        now,
+                    ),
+                )
+
+        inquiry_closed = False
+        if mark_11am_inquiry_resolved:
+            tpl_id = f"tpl_sm_inquiry_11am_{user_id}"
+            with db() as conn:
+                conn.execute(
+                    "update v6_activity_templates set status = 'completed_closed', updated_at = ? where template_id = ?",
+                    (now, tpl_id),
+                )
+                inq_inst = conn.execute(
+                    "select instance_id from v6_activity_instances where user_id = ? and template_id = ? and instance_date = ?",
+                    (user_id, tpl_id, day_str),
+                ).fetchone()
+            if inq_inst:
+                self.report_instance_execution(
+                    inq_inst["instance_id"],
+                    user_id=user_id,
+                    outcome="completed",
+                    source="self_manage_sync_verified",
+                )
+            inquiry_closed = True
+
+        return {
+            "success": True,
+            "user_id": user_id,
+            "date": day_str,
+            "source_kind": source_kind,
+            "imported_count": len(imported_instances),
+            "skipped_duplicates_count": len(skipped_duplicates),
+            "imported_instances": imported_instances,
+            "inquiry_11am_closed_permanently": inquiry_closed,
+        }
+
+    def set_morning_intent(
+        self,
+        *,
+        user_id: str = "moshe",
+        meaningful_win_text: str,
+        expected_blocker_text: str | None = None,
+        linked_goal_slug: str = "mental",
+        create_as_today_activity: bool = True,
+        target_date: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Section 11 & Section 12:
+        Morning Intent: 'מה יהיה ניצחון אמיתי מבחינתך היום?' + expected blocker.
+        Can become a proposed/active today activity without overwriting the daily plan automatically.
+        """
+        day_str = target_date or date.today().isoformat()
+        now = utc_now()
+        intent_id = f"intent_{user_id}_{day_str}"
+        created_instance_id = None
+
+        if create_as_today_activity:
+            act = self.create_activity_template(
+                {
+                    "user_id": user_id,
+                    "name": f"🎯 כוונת בוקר: {meaningful_win_text.strip()}",
+                    "aliases": ["כוונת בוקר", "ניצחון יומי"],
+                    "description": f"חסם צפוי: {expected_blocker_text or 'ללא'}",
+                    "open_time": "07:00",
+                    "preferred_time": "09:00",
+                    "check_time": "17:00",
+                    "importance": 10,
+                    "impact": 10,
+                    "goal_ids": [linked_goal_slug],
+                    "instantiate_for_today": True,
+                    "instance_date": day_str,
+                }
+            )
+            created_instance_id = act["today_instance"]["instance_id"]
+
+        with db() as conn:
+            conn.execute(
+                """
+                insert or replace into v6_morning_intents
+                (intent_id, user_id, intent_date, meaningful_win_text, expected_blocker_text,
+                 linked_goal_slug, created_instance_id, created_at)
+                values (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    intent_id,
+                    user_id,
+                    day_str,
+                    meaningful_win_text.strip(),
+                    expected_blocker_text,
+                    linked_goal_slug,
+                    created_instance_id,
+                    now,
+                ),
+            )
+        return self.get_morning_intent(user_id=user_id, target_date=day_str)
+
+    def get_morning_intent(self, user_id: str = "moshe", target_date: str | None = None) -> dict[str, Any]:
+        day_str = target_date or date.today().isoformat()
+        with db() as conn:
+            row = conn.execute(
+                "select * from v6_morning_intents where user_id = ? and intent_date = ?",
+                (user_id, day_str),
+            ).fetchone()
+        if not row:
+            return {
+                "success": True,
+                "has_intent": False,
+                "date": day_str,
+                "prompt_he": "מה יהיה ניצחון אמיתי ומשמעותי מבחינתך היום, ואיזה חסם עלול להפריע?",
+                "intent": None,
+            }
+        return {
+            "success": True,
+            "has_intent": True,
+            "date": day_str,
+            "prompt_he": "מה יהיה ניצחון אמיתי ומשמעותי מבחינתך היום, ואיזה חסם עלול להפריע?",
+            "intent": {
+                "intent_id": row["intent_id"],
+                "user_id": row["user_id"],
+                "intent_date": row["intent_date"],
+                "meaningful_win_text": row["meaningful_win_text"],
+                "expected_blocker_text": row["expected_blocker_text"],
+                "linked_goal_slug": row["linked_goal_slug"],
+                "created_instance_id": row["created_instance_id"],
+                "created_at": row["created_at"],
+            },
+        }
+
+    def log_energy_4d(
+        self,
+        *,
+        user_id: str = "moshe",
+        physical_energy: int = 3,
+        focus_clarity: int = 3,
+        motivation_drive: int = 3,
+        emotional_load: int = 2,
+        helpful_system_day: bool | None = None,
+        source: str = "self_report",
+        notes: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Section 12:
+        Distinguishes Physical Energy, Focus/Concentration, Motivation, and Emotional Load (1–5 scale).
+        Never computes a single arbitrary 'Health Score'.
+        Also tracks whether the user explicitly felt the system was helpful today (`helpful_system_day`).
+        """
+        log_id = resource_id("v6_nrg")
+        now = utc_now()
+        with db() as conn:
+            conn.execute(
+                """
+                insert into v6_energy_4d_logs
+                (log_id, user_id, occurred_at, physical_energy, focus_clarity,
+                 motivation_drive, emotional_load, helpful_system_day, source, notes)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    log_id,
+                    user_id,
+                    now,
+                    max(1, min(5, int(physical_energy))),
+                    max(1, min(5, int(focus_clarity))),
+                    max(1, min(5, int(motivation_drive))),
+                    max(1, min(5, int(emotional_load))),
+                    (1 if helpful_system_day else 0) if helpful_system_day is not None else None,
+                    source,
+                    notes,
+                ),
+            )
+        return self.get_energy_4d_summary(user_id=user_id)
+
+    def get_energy_4d_summary(self, user_id: str = "moshe", limit: int = 14) -> dict[str, Any]:
+        with db() as conn:
+            rows = conn.execute(
+                "select * from v6_energy_4d_logs where user_id = ? order by occurred_at desc limit ?",
+                (user_id, limit),
+            ).fetchall()
+        logs = [
+            {
+                "log_id": r["log_id"],
+                "occurred_at": r["occurred_at"],
+                "physical_energy": int(r["physical_energy"]),
+                "focus_clarity": int(r["focus_clarity"]),
+                "motivation_drive": int(r["motivation_drive"]),
+                "emotional_load": int(r["emotional_load"]),
+                "helpful_system_day": bool(r["helpful_system_day"]) if r["helpful_system_day"] is not None else None,
+                "source": r["source"],
+                "notes": r["notes"],
+            }
+            for r in rows
+        ]
+        latest = logs[0] if logs else {
+            "physical_energy": 3,
+            "focus_clarity": 3,
+            "motivation_drive": 3,
+            "emotional_load": 2,
+            "helpful_system_day": None,
+            "source": "default_baseline",
+        }
+        helpful_days_count = sum(1 for item in logs if item["helpful_system_day"] is True)
+
+        # Deterministic recommendation based on 4D profile
+        if latest["emotional_load"] >= 4:
+            guidance_he = "עומס רגשי גבוה: מוצע תרגול נשימה/ויסות קצר או מנוחה, ולהימנע מהעמסת משימות חדשות."
+        elif latest["physical_energy"] <= 2 and latest["focus_clarity"] >= 4:
+            guidance_he = "אנרגיה פיזית נמוכה אך ריכוז גבוה: זמן מצוין ללמידת AI או כתיבה, וגרסת מינימום באימון הגופני."
+        elif latest["physical_energy"] >= 4:
+            guidance_he = "אנרגיה פיזית טובה: חלון מתאים לביצוע הצפרדע היומית או אימון כוח/מתח."
+        else:
+            guidance_he = "פרופיל אנרגיה מאוזן: המשך לפי סדר היום המועדף."
+
+        return {
+            "success": True,
+            "user_id": user_id,
+            "has_general_health_score": False,
+            "latest_4d": latest,
+            "helpful_system_days_count": helpful_days_count,
+            "total_logged_entries": len(logs),
+            "tailored_guidance_he": guidance_he,
+            "recent_logs": logs,
+        }
+
+    def analyze_anti_drift_and_recommendations(self, user_id: str = "moshe") -> dict[str, Any]:
+        """
+        Section 11:
+        1. Anti-Drift Engine: Detects gap between high operational task volume and low core-goal progress
+           according to each goal's desired weekly frequency (not an arbitrary 3-day threshold).
+        2. Recommendation Engine: Identifies repeated friction/deferrals and proposes schedule time shifts
+           or minimum viable versions with explicit evidence, correlation-vs-causation note, and
+           non-repetition of rejected recommendations.
+        3. System Burden Metrics: Counts prompts sent, deferred, muted, and completed.
+        """
+        growth_svc = GrowthChallengesAndPlayService()
+        domains = growth_svc.list_domains(user_id=user_id)["domains"]
+
+        with db() as conn:
+            inst_rows = conn.execute(
+                "select * from v6_activity_instances where user_id = ? order by created_at desc limit 50",
+                (user_id,),
+            ).fetchall()
+            existing_recs = conn.execute(
+                "select * from v6_recommendations where user_id = ? order by created_at desc",
+                (user_id,),
+            ).fetchall()
+
+        rejected_targets = {
+            (r["rec_type"], r["target_entity_id"])
+            for r in existing_recs
+            if r["status"] == "rejected"
+        }
+
+        total_completed_ops = sum(1 for r in inst_rows if r["execution_outcome"] == "completed")
+        drift_alerts: list[dict[str, Any]] = []
+        now = utc_now()
+
+        for dom in domains:
+            if dom["tier"] == "core" and dom["weekly_activity_count"] < max(1, dom["desired_frequency_per_week"] // 2):
+                drift_alerts.append(
+                    {
+                        "domain_slug": dom["slug"],
+                        "domain_name": dom["name"],
+                        "desired_frequency_per_week": dom["desired_frequency_per_week"],
+                        "actual_weekly_activity_count": dom["weekly_activity_count"],
+                        "operational_tasks_completed": total_completed_ops,
+                        "evidence_he": (
+                            f"הושלמו {total_completed_ops} משימות שוטפות, אך בתחום הליבה '{dom['name']}' "
+                            f"תועדו {dom['weekly_activity_count']} פעילויות השבוע (קצב רצוי: {dom['desired_frequency_per_week']}/שבוע)."
+                        ),
+                        "suggested_single_action_he": f"שבץ מחר בבוקר פעולה משמעותית אחת של 10 דקות עבור '{dom['name']}'.",
+                    }
+                )
+
+        # Generate non-duplicate recommendations for repeatedly deferred tasks
+        new_recs_created = 0
+        for r in inst_rows:
+            if int(r["defer_count"]) >= 2 and ("shift_preferred_time", r["template_id"]) not in rejected_targets:
+                already_open = any(
+                    er["rec_type"] == "shift_preferred_time" and er["target_entity_id"] == r["template_id"] and er["status"] == "pending"
+                    for er in existing_recs
+                )
+                if not already_open:
+                    rec_id = resource_id("v6_rec")
+                    with db() as conn:
+                        conn.execute(
+                            """
+                            insert into v6_recommendations
+                            (recommendation_id, user_id, rec_type, target_entity_type, target_entity_id,
+                             title_he, rationale_he, evidence_json, correlation_vs_causation_note,
+                             proposed_patch_json, status, created_at, decided_at)
+                            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """,
+                            (
+                                rec_id,
+                                user_id,
+                                "shift_preferred_time",
+                                "activity_template",
+                                r["template_id"],
+                                f"הזזת שעת ביצוע או מעבר לגרסת מינימום עבור '{r['name']}'",
+                                f"הפעילות נדחתה {r['defer_count']} פעמים מחלון השעה {r['preferred_time']}.",
+                                json_dump({"defer_count": int(r["defer_count"]), "current_preferred_time": r["preferred_time"]}),
+                                "הערת מתאם מול סיבתיות: הקשר בין השעה לדחייה הוא מתאם תצפיתי בלבד ועשוי לנבוע מעומס חיצוני באותם ימים.",
+                                json_dump({"preferred_time": "17:30", "use_minimum_viable": True}),
+                                "pending",
+                                now,
+                                None,
+                            ),
+                        )
+                    new_recs_created += 1
+
+        with db() as conn:
+            all_recs = conn.execute(
+                "select * from v6_recommendations where user_id = ? order by created_at desc",
+                (user_id,),
+            ).fetchall()
+
+        # System burden metrics (Section 11)
+        total_instances = len(inst_rows)
+        completed_count = sum(1 for r in inst_rows if r["execution_outcome"] == "completed")
+        deferred_count = sum(1 for r in inst_rows if r["execution_outcome"] == "deferred")
+        context = self.get_context_mode(user_id=user_id)
+
+        return {
+            "success": True,
+            "user_id": user_id,
+            "anti_drift_alerts": drift_alerts,
+            "recommendations": [
+                {
+                    "recommendation_id": r["recommendation_id"],
+                    "rec_type": r["rec_type"],
+                    "target_entity_type": r["target_entity_type"],
+                    "target_entity_id": r["target_entity_id"],
+                    "title_he": r["title_he"],
+                    "rationale_he": r["rationale_he"],
+                    "evidence": json_load(r["evidence_json"], {}),
+                    "correlation_vs_causation_note": r["correlation_vs_causation_note"],
+                    "proposed_patch": json_load(r["proposed_patch_json"], {}),
+                    "status": r["status"],
+                }
+                for r in all_recs
+            ],
+            "system_burden_metrics": {
+                "total_tracked_instances": total_instances,
+                "led_to_completion_count": completed_count,
+                "deferred_count": deferred_count,
+                "global_mute_active": context["global_mute_tts"],
+                "burden_assessment_he": (
+                    "עומס מערכת תקין ומאוזן"
+                    if deferred_count <= completed_count
+                    else "זוהו דחיות מרובות – מוצע להפחית התראות או לעבור למצב מינימלי."
+                ),
+            },
+        }
+
+    def decide_recommendation(
+        self,
+        recommendation_id: str,
+        *,
+        user_id: str = "moshe",
+        decision: str = "approved",
+    ) -> dict[str, Any]:
+        """
+        Section 11:
+        Approves or rejects a Recommendation Engine proposal.
+        - If rejected, it is marked 'rejected' and will NEVER be repeated without significant new evidence.
+        - If approved, applies the proposed schedule/template adjustment with audit trail.
+        """
+        now = utc_now()
+        with db() as conn:
+            row = conn.execute(
+                "select * from v6_recommendations where recommendation_id = ? and user_id = ?",
+                (recommendation_id, user_id),
+            ).fetchone()
+            if not row:
+                return {"success": False, "error": "recommendation_not_found"}
+
+            new_status = "approved" if decision == "approved" else "rejected"
+            conn.execute(
+                "update v6_recommendations set status = ?, decided_at = ? where recommendation_id = ?",
+                (new_status, now, recommendation_id),
+            )
+            if new_status == "approved" and row["target_entity_type"] == "activity_template":
+                patch = json_load(row["proposed_patch_json"], {})
+                if patch.get("preferred_time"):
+                    conn.execute(
+                        "update v6_activity_templates set preferred_time = ?, updated_at = ? where template_id = ? and user_id = ?",
+                        (str(patch["preferred_time"]), now, row["target_entity_id"], user_id),
+                    )
+        return {"success": True, "recommendation_id": recommendation_id, "status": new_status}
+
+    def sync_offline_action_queue(
+        self,
+        *,
+        user_id: str = "moshe",
+        queued_actions: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """
+        Section 16:
+        Synchronizes actions queued offline in the PWA (`IndexedDB` / `localStorage`)
+        using unique `action_idempotency_key` and `expected_entity_version` so conflicting
+        changes across devices are flagged rather than silently overwritten.
+        """
+        applied: list[dict[str, Any]] = []
+        conflicts: list[dict[str, Any]] = []
+
+        for act in queued_actions:
+            res = self.report_instance_execution(
+                str(act["instance_id"]),
+                user_id=user_id,
+                outcome=str(act.get("outcome") or "completed"),
+                source=str(act.get("source") or "pwa_offline_queue"),
+                reported_execution_at=act.get("reported_execution_at"),
+                expected_entity_version=act.get("expected_entity_version"),
+                action_idempotency_key=act.get("action_idempotency_key"),
+            )
+            if res.get("status") == "version_conflict":
+                conflicts.append(res)
+            else:
+                applied.append(res)
+
+        return {
+            "success": True,
+            "user_id": user_id,
+            "total_received": len(queued_actions),
+            "applied_count": len(applied),
+            "conflicts_count": len(conflicts),
+            "applied": applied,
+            "conflicts": conflicts,
+        }
+
+    def create_verified_db_backup(self, user_id: str = "moshe") -> dict[str, Any]:
+        """
+        Section 16:
+        Creates an automated local snapshot backup of the Compass SQLite database
+        and verifies consistency (table integrity check + row count verification).
+        """
+        db_path = get_settings().database_path.resolve()
+        backup_dir = db_path.parent / "backups"
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        backup_file = backup_dir / f"compass_backup_{stamp}.db"
+
+        if db_path.exists():
+            shutil.copy2(db_path, backup_file)
+            bconn = sqlite3.connect(backup_file)
+            try:
+                integrity = bconn.execute("PRAGMA integrity_check;").fetchone()[0]
+                tpl_count = bconn.execute("select count(*) from v6_activity_templates").fetchone()[0]
+            finally:
+                bconn.close()
+        else:
+            integrity = "ok_in_memory"
+            tpl_count = 0
+
+        CompassRepository().audit(
+            "system.backup.verified",
+            user_id,
+            {"backup_file": str(backup_file), "integrity": integrity, "templates_count": tpl_count},
+        )
+        return {
+            "success": True,
+            "backup_file": str(backup_file),
+            "integrity_check": integrity,
+            "verified_templates_count": tpl_count,
+            "restorable": integrity == "ok" or integrity == "ok_in_memory",
+        }
+

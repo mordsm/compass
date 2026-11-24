@@ -821,6 +821,59 @@ def init_db() -> None:
                 answered_at text,
                 updated_at text not null
             );
+
+            create table if not exists v6_morning_intents (
+                intent_id text primary key,
+                user_id text not null,
+                intent_date text not null,
+                meaningful_win_text text not null,
+                expected_blocker_text text,
+                linked_goal_slug text,
+                created_instance_id text,
+                created_at text not null,
+                unique(user_id, intent_date)
+            );
+
+            create table if not exists v6_energy_4d_logs (
+                log_id text primary key,
+                user_id text not null,
+                occurred_at text not null,
+                physical_energy integer not null,
+                focus_clarity integer not null,
+                motivation_drive integer not null,
+                emotional_load integer not null,
+                helpful_system_day integer,
+                source text not null,
+                notes text
+            );
+
+            create table if not exists v6_recommendations (
+                recommendation_id text primary key,
+                user_id text not null,
+                rec_type text not null,
+                target_entity_type text not null,
+                target_entity_id text not null,
+                title_he text not null,
+                rationale_he text not null,
+                evidence_json text not null,
+                correlation_vs_causation_note text not null,
+                proposed_patch_json text not null,
+                status text not null,
+                created_at text not null,
+                decided_at text
+            );
+
+            create table if not exists v6_self_manage_imports (
+                import_key text primary key,
+                user_id text not null,
+                import_date text not null,
+                source_kind text not null,
+                external_exercise_id text not null,
+                exercise_title text not null,
+                domain text not null,
+                compass_instance_id text not null,
+                created_at text not null
+            );
             """
         )
 

@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="manifest" href="/control-center/manifest.webmanifest" />
+  <link rel="icon" href="/control-center/icon.svg" type="image/svg+xml" />
   <title>Compass – System Control Center</title>
   <style>
     :root {
@@ -250,6 +253,8 @@
       </select>
       <button id="mute-btn" class="warn" onclick="toggleGlobalMute()">🔇 השתק הקראות (Mute)</button>
       <button class="secondary" onclick="runSleepCatchup()">⏰ התאוששות משינה</button>
+      <button class="ok" onclick="syncSelfManageMorning()">🏋️ ייבא תרגילי בוקר (Self-Manage)</button>
+      <button class="secondary" onclick="createDbBackup()">💾 גיבוי DB מאומת</button>
       <button class="secondary" onclick="runCycle('morning')">🌅 מחזור בוקר</button>
       <button class="secondary" onclick="runCycle('intraday')">▶️ הפעולה הבאה</button>
       <button class="secondary" onclick="runCycle('evening')">🌙 סיכום ערב</button>
@@ -639,6 +644,57 @@
     </div>
   </div>
 
+  <!-- Phase 2-4 Row: Cards 16 & 17 (Morning Intent, Anti-Drift, Recommendations, 4D Energy & Offline Sync) -->
+  <div class="grid">
+    <!-- Card 16: Morning Intent, Anti-Drift & Recommendation Engine -->
+    <div class="card">
+      <div>
+        <div class="card-header">
+          <h2>🌅 16. כוונת בוקר (Morning Intent), זיהוי Anti-Drift ומנוע המלצות</h2>
+          <button class="help-btn" onclick="openHelp('card16')" title="הסבר על קובייה 16">?</button>
+        </div>
+        <div id="v6-intent-learning-box">טוען...</div>
+      </div>
+      <div class="form-box">
+        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">🎯 הגדר כוונת בוקר ("מה יהיה ניצחון אמיתי היום?"):</div>
+        <div class="form-row">
+          <input id="v6-intent-win" type="text" placeholder="הניצחון המרכזי להיום..." style="flex:1;" />
+          <input id="v6-intent-blocker" type="text" placeholder="חסם צפוי (אופציונלי)" style="width:150px;" />
+          <button onclick="saveV6MorningIntent()">שמור כוונה</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 17: 4D Energy Management, Helpful Days & PWA Offline Sync Queue -->
+    <div class="card">
+      <div>
+        <div class="card-header">
+          <h2>⚡ 17. אנרגיה 4-ממדית (4D Energy), מדד תועלת ו-PWA Offline Queue</h2>
+          <button class="help-btn" onclick="openHelp('card17')" title="הסבר על קובייה 17">?</button>
+        </div>
+        <div id="v6-energy-offline-box">טוען...</div>
+      </div>
+      <div class="form-box">
+        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">+ דיווח אנרגיה 4-ממדי קצר (1-5, ללא Health Score מלאכותי):</div>
+        <div class="form-row">
+          <label>פיזית:</label>
+          <input id="nrg-phys" type="number" value="4" min="1" max="5" style="width:48px;" />
+          <label>ריכוז:</label>
+          <input id="nrg-foc" type="number" value="4" min="1" max="5" style="width:48px;" />
+          <label>מוטיבציה:</label>
+          <input id="nrg-mot" type="number" value="4" min="1" max="5" style="width:48px;" />
+          <label>עומס רגשי:</label>
+          <input id="nrg-emo" type="number" value="2" min="1" max="5" style="width:48px;" />
+        </div>
+        <div class="form-row">
+          <label><input id="nrg-helpful" type="checkbox" checked /> המערכת הועילה לי היום</label>
+          <button onclick="saveV6Energy4D()">שמור אנרגיה ותועלת</button>
+          <button class="secondary" onclick="flushOfflineQueue()">🔄 סנכרן תור Offline</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Card 10 & 11: Decisions, Pending Approvals & Inspector -->
   <div class="grid">
     <div class="card">
@@ -781,6 +837,20 @@
         why: "1) לא כל רעיון שעולה לך באמצע היום צריך להפוך למשימה שמייצרת עומס או חוב. כפתור 'רעיון' שומר אותו במאגר הרעיונות בלי טופס ובלי להפוך אותו למשימה. 2) במקום שאלון חובה ארוך ומתיש, Compass שואלת שאלה אחת בכל פעם, מאפשרת דילוג או השתקת נושא, ולעולם לא שואלת שוב מידע שכבר נענה.",
         how: "נשמר בטבלאות <code>v6_inbox_items</code> ו-<code>v6_onboarding_questions</code>. כל תשובה מסומנת כעובדה מפורשת (<code>explicit_fact</code>) או הסקה, והשאלה הבאה נבחרת דטרמיניסטית לפי חשיבות וחסמי תשתית.",
         example: "רשום בתיבת ה-Inbox 'אולי כדאי להוסיף תרגול נשימה לפני שיחת מכירה' ולחץ '💡 שמור כרעיון'. למעלה, ענה על שאלת ההיכרות הפתוחה או לחץ 'דלג כעת' – ותראה ש-Compass עוברת מיד לשאלה הבאה במאגר."
+      },
+      card16: {
+        title: "🌅 קובייה 16: כוונת בוקר (Morning Intent), זיהוי Anti-Drift ומנוע המלצות (סעיף 11)",
+        what: "קביעת 'ניצחון אמיתי אחד להיום' יחד עם חסם צפוי, זיהוי אוטומטי של התרחקות ממטרות ליבה (Anti-Drift), והצעות למידה מבוססות נתונים (Recommendation Engine) עם מדד עומס המערכת.",
+        why: "לפעמים מסמנים V על הרבה משימות תפעוליות קטנות אבל לא מתקדמים במטרות החשובות באמת. Anti-Drift מזהה את הפער הזה לפי הקצב השבועי שהגדרת לכל מטרה, ומנוע ההמלצות מזהה משימות שנדחות שוב ושוב ומציע להזיז את שעתן – תוך הפרדה בין מתאם לסיבתיות ואי-חזרה על המלצה שדחית.",
+        how: "<ul><li><strong>Morning Intent:</strong> נשמר ב-<code>v6_morning_intents</code> ויוצר פעילות מובילה להיום בלי למחוק או לדרוס את התוכנית היומית.</li><li><strong>Anti-Drift:</strong> משווה בין כמות המשימות התפעוליות שהושלמו לבין פעילות בפועל בתחומי הליבה.</li><li><strong>Recommendation Engine:</strong> כאשר פעילות נדחית פעמיים ומעלה, נוצרת המלצה עם ראיות והערת מתאם מול סיבתיות. אם תלחץ 'דחה המלצה', היא לא תוצע שוב ללא מידע חדש.</li></ul>",
+        example: "הזן ניצחון יומי: 'השלמת ניסוי AI + אימון מתח קצר' וחסם צפוי: 'ישיבות צהריים ארוכות', ולחץ 'שמור כוונה'."
+      },
+      card17: {
+        title: "⚡ קובייה 17: ניהול אנרגיה 4-ממדי (4D Energy), מדד תועלת ו-PWA Offline Queue (סעיפים 12 ו-16)",
+        what: "מעקב נפרד אחרי 4 ממדי אנרגיה (אנרגיה פיזית, ריכוז, מוטיבציה ועומס רגשי), תיעוד ימים שבהם המערכת הועילה לך, וניהול תור הסנכרון המקומי (Offline Queue) של אפליקציית ה-PWA בטלפון ובמחשב.",
+        why: "אין דבר כזה 'ציון בריאות כללי' אחד: ייתכן שהאנרגיה הפיזית שלך נמוכה (2/5) אך הריכוז גבוה (5/5) – מצב אידיאלי ללמידת AI וכתיבה, עם גרסת מינימום באימון הגופני. בנוסף, כשהמחשב ישן בלילה או אין קליטה בטלפון, תור ה-Offline שומר את הסימונים שלך ומסנכרן אותם עם מניעת התנגשויות ברגע שהשרת זמין.",
+        how: "<ul><li><strong>4D Energy:</strong> נשמר ב-<code>v6_energy_4d_logs</code> ומפיק הנחיה מותאמת לפרופיל האנרגיה הנוכחי.</li><li><strong>PWA + Offline Queue:</strong> הדף כולל <code>manifest.webmanifest</code> ו-<code>Service Worker</code>. אם פעולת סימון מתבצעת כשהשרת מנותק, היא נשמרת ב-<code>localStorage</code> עם מזהה פעולה ייחודי ומסונכרנת ל-<code>POST /api/v6/offline/sync</code> בלחיצה או בחזרת חיבור.</li></ul>",
+        example: "דרג פיזית=2, ריכוז=5, מוטיבציה=4, עומס רגשי=2 ולחץ 'שמור אנרגיה ותועלת' – המערכת תמליץ מיד להתמקד במשימת AI/כתיבה ולהשתמש בגרסת מינימום לפעילות הגופנית."
       }
     };
 
@@ -1071,6 +1141,60 @@
           <span style="font-size:0.76rem; color:var(--muted);">${item.status}</span>
         </div>
       `).join('');
+
+      // Render Card 16: Morning Intent, Anti-Drift & Recommendations
+      const v6Intent = data.v6_morning_intent || {};
+      const v6Learn = data.v6_learning || {};
+      const drifts = v6Learn.anti_drift_alerts || [];
+      const recs = (v6Learn.recommendations || []).filter(r => r.status === 'pending');
+      const burden = v6Learn.system_burden_metrics || {};
+
+      document.getElementById('v6-intent-learning-box').innerHTML = `
+        <div style="margin-bottom:6px;">
+          <strong>🎯 כוונת הבוקר להיום:</strong>
+          ${v6Intent.has_intent
+            ? `<span class="badge ok">${v6Intent.intent.meaningful_win_text}</span> (חסם צפוי: ${v6Intent.intent.expected_blocker_text || 'ללא'})`
+            : '<span style="color:var(--muted);">טרם הוגדרה כוונת בוקר להיום</span>'}
+        </div>
+        <div style="margin-bottom:6px;">
+          <strong>🧭 התראות Anti-Drift:</strong> <span class="badge ${drifts.length ? 'warn' : 'ok'}">${drifts.length}</span> |
+          <strong>עומס מערכת:</strong> <span style="font-size:0.8rem; color:var(--muted);">${burden.burden_assessment_he || ''}</span>
+        </div>
+        ${drifts.slice(0, 2).map(d => `
+          <div style="font-size:0.8rem; color:#fbbf24; margin-bottom:4px;">⚠️ ${d.evidence_he}</div>
+        `).join('')}
+        ${recs.slice(0, 2).map(r => `
+          <div class="item-row" style="background:#0b1120; padding:6px 8px; border-radius:6px; margin-top:4px;">
+            <div>
+              <strong>💡 המלצה: ${r.title_he}</strong>
+              <div style="font-size:0.76rem; color:var(--muted);">${r.rationale_he} | ${r.correlation_vs_causation_note}</div>
+            </div>
+            <div style="display:flex; gap:4px;">
+              <button class="ok" onclick="decideV6Rec('${r.recommendation_id}', 'approved')">אשר</button>
+              <button class="secondary" onclick="decideV6Rec('${r.recommendation_id}', 'rejected')">דחה (אל תחזור)</button>
+            </div>
+          </div>
+        `).join('')}
+      `;
+
+      // Render Card 17: 4D Energy, Helpful Days & Offline Queue
+      const v6Energy = data.v6_energy_4d || {};
+      const lat4d = v6Energy.latest_4d || {};
+      const offlineQueue = JSON.parse(localStorage.getItem('compass_v6_offline_queue') || '[]');
+      document.getElementById('v6-energy-offline-box').innerHTML = `
+        <div>
+          <strong>פרופיל אנרגיה נוכחי (1-5):</strong>
+          פיזית: <span class="badge">${lat4d.physical_energy ?? 3}</span> |
+          ריכוז: <span class="badge">${lat4d.focus_clarity ?? 3}</span> |
+          מוטיבציה: <span class="badge">${lat4d.motivation_drive ?? 3}</span> |
+          עומס רגשי: <span class="badge ${lat4d.emotional_load >= 4 ? 'warn' : 'ok'}">${lat4d.emotional_load ?? 2}</span>
+        </div>
+        <div style="font-size:0.82rem; color:var(--accent); margin:6px 0;">💡 ${v6Energy.tailored_guidance_he || ''}</div>
+        <div>
+          <strong>ימים שבהם המערכת הועילה לך:</strong> <span class="badge ok">${v6Energy.helpful_system_days_count ?? 0}</span> |
+          <strong>פעולות בתור Offline לסנכרון:</strong> <span class="badge ${offlineQueue.length ? 'warn' : 'ok'}">${offlineQueue.length}</span>
+        </div>
+      `;
     }
 
     async function savePolicyBounds() {
@@ -1650,6 +1774,96 @@
       const data = await res.json();
       showOutput('🧭 עדכון Progressive Onboarding בניהול Compass:', data);
       await loadOverview();
+    }
+
+    async function syncSelfManageMorning() {
+      const res = await fetch('/api/v6/self-manage/sync-morning', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', mark_11am_inquiry_resolved: true})
+      });
+      const data = await res.json();
+      showOutput('🏋️ תרגילי הבוקר מ-Self-Manage סונכרנו למסך היום ומשימת הבירור של 11:00 נסגרה לצמיתות:', data);
+      await loadOverview();
+    }
+
+    async function createDbBackup() {
+      const res = await fetch('/api/v6/backup/create?user_id=moshe', {method: 'POST'});
+      const data = await res.json();
+      showOutput('💾 גיבוי מסד נתונים מקומי נוצר ואומת (PRAGMA integrity_check):', data);
+    }
+
+    async function saveV6MorningIntent() {
+      const meaningful_win_text = document.getElementById('v6-intent-win').value.trim();
+      if (!meaningful_win_text) return alert('נא להזין מה יהיה ניצחון משמעותי היום');
+      const expected_blocker_text = document.getElementById('v6-intent-blocker').value.trim() || null;
+      const res = await fetch('/api/v6/morning-intent', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', meaningful_win_text, expected_blocker_text, create_as_today_activity: true})
+      });
+      const data = await res.json();
+      document.getElementById('v6-intent-win').value = '';
+      document.getElementById('v6-intent-blocker').value = '';
+      showOutput('🌅 כוונת בוקר נשמרה ונוספה למסך היום:', data);
+      await loadOverview();
+    }
+
+    async function decideV6Rec(recId, decision) {
+      const res = await fetch(`/api/v6/learning/recommendations/${encodeURIComponent(recId)}/decide`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', decision})
+      });
+      const data = await res.json();
+      showOutput('💡 החלטה על המלצת מערכת נשמרה:', data);
+      await loadOverview();
+    }
+
+    async function saveV6Energy4D() {
+      const physical_energy = parseInt(document.getElementById('nrg-phys').value, 10) || 3;
+      const focus_clarity = parseInt(document.getElementById('nrg-foc').value, 10) || 3;
+      const motivation_drive = parseInt(document.getElementById('nrg-mot').value, 10) || 3;
+      const emotional_load = parseInt(document.getElementById('nrg-emo').value, 10) || 2;
+      const helpful_system_day = document.getElementById('nrg-helpful').checked;
+      const res = await fetch('/api/v6/energy-4d', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          user_id: 'moshe',
+          physical_energy,
+          focus_clarity,
+          motivation_drive,
+          emotional_load,
+          helpful_system_day
+        })
+      });
+      const data = await res.json();
+      showOutput('⚡ פרופיל אנרגיה 4-ממדי ומדד תועלת נשמרו:', data);
+      await loadOverview();
+    }
+
+    async function flushOfflineQueue() {
+      const queue = JSON.parse(localStorage.getItem('compass_v6_offline_queue') || '[]');
+      const res = await fetch('/api/v6/offline/sync', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', queued_actions: queue})
+      });
+      const data = await res.json();
+      localStorage.setItem('compass_v6_offline_queue', '[]');
+      showOutput('🔄 תור Offline סונכרן מול השרת:', data);
+      await loadOverview();
+    }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/control-center/sw.js').catch(() => {});
+      });
+      window.addEventListener('online', () => {
+        const queue = JSON.parse(localStorage.getItem('compass_v6_offline_queue') || '[]');
+        if (queue.length > 0) flushOfflineQueue();
+      });
     }
 
     loadOverview();

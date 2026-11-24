@@ -1,0 +1,20 @@
+{
+  "name": "Compass – Proactive Personal Development",
+  "short_name": "Compass",
+  "description": "מערכת פרואקטיבית לניהול עצמי, צפרדעים, הרגלים, אימון מנטלי ומנוע כללים דטרמיניסטי",
+  "start_url": "/control-center/",
+  "scope": "/control-center/",
+  "display": "standalone",
+  "dir": "rtl",
+  "lang": "he-IL",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/control-center/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

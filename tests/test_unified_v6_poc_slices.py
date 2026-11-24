@@ -336,6 +336,105 @@ class UnifiedV6PocSlicesTests(unittest.TestCase):
         onb_state_after = get_onboarding_state(user_id="moshe")
         self.assertNotEqual(onb_state_after["next_question"]["question_id"], first_q["question_id"])
 
+    def test_phases_2_to_4_self_manage_sync_morning_intent_anti_drift_energy_4d_offline_and_backup(self) -> None:
+        from app.routers.unified_v6 import (
+            DecideRecommendationRequest,
+            LogEnergy4DRequest,
+            SetMorningIntentRequest,
+            SyncOfflineQueueRequest,
+            SyncSelfManageMorningRequest,
+            create_verified_db_backup,
+            decide_recommendation,
+            get_anti_drift_and_recommendations,
+            log_energy_4d,
+            set_morning_intent,
+            sync_offline_queue,
+            sync_self_manage_morning,
+        )
+
+        # 1. Self-Manage morning exercises import + deduplication + permanent closing of 11:00 inquiry task
+        sm_sync1 = sync_self_manage_morning(
+            SyncSelfManageMorningRequest(user_id="moshe", mark_11am_inquiry_resolved=True)
+        )
+        self.assertTrue(sm_sync1["success"])
+        self.assertGreaterEqual(sm_sync1["imported_count"], 1)
+        self.assertTrue(sm_sync1["inquiry_11am_closed_permanently"])
+
+        # Re-importing on the same day skips duplicates
+        sm_sync2 = sync_self_manage_morning(
+            SyncSelfManageMorningRequest(user_id="moshe", mark_11am_inquiry_resolved=True)
+        )
+        self.assertEqual(sm_sync2["imported_count"], 0)
+        self.assertGreaterEqual(sm_sync2["skipped_duplicates_count"], 1)
+
+        # 2. Morning Intent ('ניצחון אמיתי להיום' + expected blocker)
+        intent_res = set_morning_intent(
+            SetMorningIntentRequest(
+                user_id="moshe",
+                meaningful_win_text="השלמת אינטגרציית V6 ואימון מתח",
+                expected_blocker_text="עומס הודעות בצהריים",
+                linked_goal_slug="ai_professional",
+                create_as_today_activity=True,
+            )
+        )
+        self.assertTrue(intent_res["has_intent"])
+        self.assertIsNotNone(intent_res["intent"]["created_instance_id"])
+
+        # 3. 4D Energy Management (no general Health Score + helpful system day tracking)
+        nrg_res = log_energy_4d(
+            LogEnergy4DRequest(
+                user_id="moshe",
+                physical_energy=2,
+                focus_clarity=5,
+                motivation_drive=4,
+                emotional_load=2,
+                helpful_system_day=True,
+            )
+        )
+        self.assertFalse(nrg_res["has_general_health_score"])
+        self.assertEqual(nrg_res["helpful_system_days_count"], 1)
+        self.assertIn("למידת AI", nrg_res["tailored_guidance_he"])
+
+        # 4. Anti-Drift & Recommendation Engine (repeated deferrals -> recommendation with correlation-vs-causation note)
+        inst_id = intent_res["intent"]["created_instance_id"]
+        report_instance_execution(inst_id, ReportV6InstanceExecutionRequest(user_id="moshe", outcome="deferred"))
+        report_instance_execution(inst_id, ReportV6InstanceExecutionRequest(user_id="moshe", outcome="deferred"))
+
+        learn_res = get_anti_drift_and_recommendations(user_id="moshe")
+        self.assertGreaterEqual(len(learn_res["anti_drift_alerts"]), 1)
+        self.assertGreaterEqual(len(learn_res["recommendations"]), 1)
+        first_rec = learn_res["recommendations"][0]
+        self.assertIn("מתאם", first_rec["correlation_vs_causation_note"])
+
+        # Reject recommendation -> marked rejected and never re-created on subsequent runs
+        dec_res = decide_recommendation(
+            first_rec["recommendation_id"],
+            DecideRecommendationRequest(user_id="moshe", decision="rejected"),
+        )
+        self.assertEqual(dec_res["status"], "rejected")
+
+        # 5. PWA Offline Queue batch sync with conflict detection
+        sync_res = sync_offline_queue(
+            SyncOfflineQueueRequest(
+                user_id="moshe",
+                queued_actions=[
+                    {
+                        "instance_id": inst_id,
+                        "outcome": "completed",
+                        "source": "android_pwa_offline",
+                        "action_idempotency_key": "offline_act_1",
+                    }
+                ],
+            )
+        )
+        self.assertEqual(sync_res["applied_count"], 1)
+        self.assertEqual(sync_res["conflicts_count"], 0)
+
+        # 6. Automated verified SQLite backup
+        bkp = create_verified_db_backup(user_id="moshe")
+        self.assertTrue(bkp["success"])
+        self.assertTrue(bkp["restorable"])
+
 
 if __name__ == "__main__":
     unittest.main()

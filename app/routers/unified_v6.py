@@ -125,6 +125,43 @@ class AnswerOnboardingQuestionRequest(BaseModel):
     mute_topic: bool = False
 
 
+class SyncSelfManageMorningRequest(BaseModel):
+    user_id: str = "moshe"
+    target_date: str | None = None
+    manual_exercises: list[dict[str, Any]] | None = None
+    mark_11am_inquiry_resolved: bool = True
+
+
+class SetMorningIntentRequest(BaseModel):
+    user_id: str = "moshe"
+    meaningful_win_text: str
+    expected_blocker_text: str | None = None
+    linked_goal_slug: str = "mental"
+    create_as_today_activity: bool = True
+    target_date: str | None = None
+
+
+class LogEnergy4DRequest(BaseModel):
+    user_id: str = "moshe"
+    physical_energy: int = Field(default=3, ge=1, le=5)
+    focus_clarity: int = Field(default=3, ge=1, le=5)
+    motivation_drive: int = Field(default=3, ge=1, le=5)
+    emotional_load: int = Field(default=2, ge=1, le=5)
+    helpful_system_day: bool | None = None
+    source: str = "self_report"
+    notes: str | None = None
+
+
+class DecideRecommendationRequest(BaseModel):
+    user_id: str = "moshe"
+    decision: str = "approved"
+
+
+class SyncOfflineQueueRequest(BaseModel):
+    user_id: str = "moshe"
+    queued_actions: list[dict[str, Any]] = Field(default_factory=list)
+
+
 @router.get("/today-screen", operation_id="getV6TodayScreen")
 def get_today_screen(user_id: str = "moshe", target_date: str | None = None, current_time: str = "09:30") -> dict[str, Any]:
     return UnifiedV6Service().get_today_screen(user_id=user_id, target_date=target_date, current_time=current_time)
@@ -268,3 +305,77 @@ def answer_onboarding_question(question_id: str, request: AnswerOnboardingQuesti
         fact_or_inference=request.fact_or_inference,
         mute_topic=request.mute_topic,
     )
+
+
+@router.post("/self-manage/sync-morning", operation_id="syncV6SelfManageMorningExercises")
+def sync_self_manage_morning(request: SyncSelfManageMorningRequest) -> dict[str, Any]:
+    return UnifiedV6Service().sync_self_manage_morning_exercises(
+        user_id=request.user_id,
+        target_date=request.target_date,
+        manual_exercises=request.manual_exercises,
+        mark_11am_inquiry_resolved=request.mark_11am_inquiry_resolved,
+    )
+
+
+@router.get("/morning-intent", operation_id="getV6MorningIntent")
+def get_morning_intent(user_id: str = "moshe", target_date: str | None = None) -> dict[str, Any]:
+    return UnifiedV6Service().get_morning_intent(user_id=user_id, target_date=target_date)
+
+
+@router.post("/morning-intent", operation_id="setV6MorningIntent")
+def set_morning_intent(request: SetMorningIntentRequest) -> dict[str, Any]:
+    return UnifiedV6Service().set_morning_intent(
+        user_id=request.user_id,
+        meaningful_win_text=request.meaningful_win_text,
+        expected_blocker_text=request.expected_blocker_text,
+        linked_goal_slug=request.linked_goal_slug,
+        create_as_today_activity=request.create_as_today_activity,
+        target_date=request.target_date,
+    )
+
+
+@router.get("/energy-4d", operation_id="getV6Energy4DSummary")
+def get_energy_4d(user_id: str = "moshe") -> dict[str, Any]:
+    return UnifiedV6Service().get_energy_4d_summary(user_id=user_id)
+
+
+@router.post("/energy-4d", operation_id="logV6Energy4D")
+def log_energy_4d(request: LogEnergy4DRequest) -> dict[str, Any]:
+    return UnifiedV6Service().log_energy_4d(
+        user_id=request.user_id,
+        physical_energy=request.physical_energy,
+        focus_clarity=request.focus_clarity,
+        motivation_drive=request.motivation_drive,
+        emotional_load=request.emotional_load,
+        helpful_system_day=request.helpful_system_day,
+        source=request.source,
+        notes=request.notes,
+    )
+
+
+@router.get("/learning/recommendations", operation_id="getV6AntiDriftAndRecommendations")
+def get_anti_drift_and_recommendations(user_id: str = "moshe") -> dict[str, Any]:
+    return UnifiedV6Service().analyze_anti_drift_and_recommendations(user_id=user_id)
+
+
+@router.post("/learning/recommendations/{recommendation_id}/decide", operation_id="decideV6Recommendation")
+def decide_recommendation(recommendation_id: str, request: DecideRecommendationRequest) -> dict[str, Any]:
+    return UnifiedV6Service().decide_recommendation(
+        recommendation_id,
+        user_id=request.user_id,
+        decision=request.decision,
+    )
+
+
+@router.post("/offline/sync", operation_id="syncV6OfflineQueue")
+def sync_offline_queue(request: SyncOfflineQueueRequest) -> dict[str, Any]:
+    return UnifiedV6Service().sync_offline_action_queue(
+        user_id=request.user_id,
+        queued_actions=request.queued_actions,
+    )
+
+
+@router.post("/backup/create", operation_id="createV6VerifiedDbBackup")
+def create_verified_db_backup(user_id: str = "moshe") -> dict[str, Any]:
+    return UnifiedV6Service().create_verified_db_backup(user_id=user_id)
+
