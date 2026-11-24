@@ -36,12 +36,12 @@
       margin-bottom: 20px;
     }
     h1 { margin: 0; font-size: 1.6rem; color: var(--accent); }
-    h2 { margin-top: 0; font-size: 1.12rem; color: #e2e8f0; }
+    h2 { margin-top: 0; font-size: 1.12rem; color: #e2e8f0; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
     .badge {
       display: inline-block;
-      padding: 4px 10px;
+      padding: 3px 9px;
       border-radius: 999px;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 600;
       background: #334155;
     }
@@ -50,7 +50,7 @@
     .badge.danger { background: rgba(239, 68, 68, 0.2); color: #f87171; }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
       gap: 16px;
       margin-bottom: 20px;
     }
@@ -59,11 +59,27 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .form-box {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border);
+      font-size: 0.84rem;
+    }
+    .form-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+      align-items: center;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.86rem;
+      font-size: 0.85rem;
     }
     th, td {
       text-align: right;
@@ -76,19 +92,22 @@
       color: #0f172a;
       border: none;
       border-radius: 6px;
-      padding: 6px 12px;
+      padding: 6px 11px;
       font-weight: 600;
       cursor: pointer;
-      font-size: 0.83rem;
+      font-size: 0.82rem;
     }
+    button:hover { opacity: 0.92; }
     button.secondary { background: #334155; color: var(--text); }
-    input[type="text"] {
+    button.ok { background: var(--ok); color: #052e16; }
+    button.warn { background: var(--warn); color: #451a03; }
+    input, select {
       background: #0b1120;
       border: 1px solid var(--border);
       color: var(--text);
-      padding: 7px 10px;
+      padding: 6px 9px;
       border-radius: 6px;
-      width: 100%;
+      font-size: 0.83rem;
     }
     pre {
       background: #0b1120;
@@ -97,6 +116,17 @@
       overflow-x: auto;
       font-size: 0.82rem;
       white-space: pre-wrap;
+      max-height: 360px;
+      overflow-y: auto;
+    }
+    .item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(51,65,85,0.5);
+      font-size: 0.84rem;
+      gap: 6px;
     }
   </style>
 </head>
@@ -105,13 +135,14 @@
     <div>
       <h1>🧭 Compass – System Control Center</h1>
       <div style="color: var(--muted); font-size: 0.9rem;">
-        מרכז בקרה להתפתחות פרואקטיבית: מטרות, צפרדעים, הרגלים, אתגרים, אימון מנטלי, קטלוג כללים ושקיפות החלטות
+        מרכז בקרה אינטראקטיבי: עריכת מדיניות, צפרדעים, הרגלים, תחומי צמיחה, אתגרים, אירועים מנטליים ובניית כללים דטרמיניסטיים
       </div>
     </div>
     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
       <span id="role-badge" class="badge ok">תפקיד: מתכנן (Planner)</span>
       <button onclick="toggleRole()">החלף מתכנן / מבצע</button>
       <button class="secondary" onclick="runCycle('morning')">🌅 הרץ מחזור בוקר</button>
+      <button class="secondary" onclick="runCycle('intraday')">▶️ הפעולה הבאה (מבצע)</button>
       <button class="secondary" onclick="runCycle('evening')">🌙 הרץ סיכום ערב</button>
       <button class="secondary" onclick="runCycle('weekly')">📅 סיכום שבועי</button>
       <button class="secondary" onclick="runCycle('monthly')">🗓 הערכה חודשית</button>
@@ -120,49 +151,240 @@
   </header>
 
   <div class="grid">
+    <!-- Card 1: Policy & Autonomy -->
     <div class="card">
-      <h2>⚙️ מדיניות, תפקיד וגבולות אוטונומיה</h2>
-      <div id="policy-box">טוען...</div>
+      <div>
+        <h2>⚙️ 1. מדיניות, תפקיד וגבולות אוטונומיה</h2>
+        <div id="policy-box">טוען...</div>
+      </div>
+      <div class="form-box">
+        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">עריכת גבולות אוטונומיה (מצב מתכנן):</div>
+        <div class="form-row">
+          <label>תקרת דקות יומית:</label>
+          <input id="pol-minutes" type="number" value="180" style="width:75px;" />
+          <label>תקרת קושי (1-10):</label>
+          <input id="pol-diff" type="number" value="5" min="1" max="10" style="width:60px;" />
+          <button onclick="savePolicyBounds()">שמור מדיניות</button>
+        </div>
+      </div>
     </div>
+
+    <!-- Card 2: Frogs Pool -->
     <div class="card">
-      <h2>🐸 מאגר צפרדעים (Eat That Frog)</h2>
-      <div id="frogs-box">טוען...</div>
+      <div>
+        <h2>🐸 2. מאגר צפרדעים (Eat That Frog)</h2>
+        <div id="frogs-box">טוען...</div>
+      </div>
+      <div class="form-box">
+        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">+ הוסף צפרדע חדשה למאגר:</div>
+        <div class="form-row">
+          <input id="frog-name" type="text" placeholder="שם הצפרדע (למשל: אימון מתח / שיחה מורכבת)" style="flex:1;" />
+        </div>
+        <div class="form-row">
+          <select id="frog-type">
+            <option value="one_time">חד-פעמית (נסגרת בסיום)</option>
+            <option value="ongoing">מתמשכת (נשארת במאגר)</option>
+          </select>
+          <select id="frog-domain">
+            <option value="physical">פיזי</option>
+            <option value="mental">מנטלי</option>
+            <option value="ai_professional">AI מקצועי</option>
+            <option value="core">כללי</option>
+          </select>
+          <label>התנגדות:</label>
+          <input id="frog-res" type="number" value="8" min="1" max="10" style="width:55px;" />
+          <button onclick="addFrog()">הוסף צפרדע</button>
+        </div>
+      </div>
     </div>
+
+    <!-- Card 3: Routines & 6-Step Prep Protocol -->
     <div class="card">
-      <h2>🔄 הרגלים ופרוטוקול הכנה (6 שלבים)</h2>
-      <div id="routines-box">טוען...</div>
+      <div>
+        <h2>🔄 3. הרגלים ופרוטוקול הכנה (6 שלבים)</h2>
+        <div id="routines-box">טוען...</div>
+      </div>
+      <div class="form-box">
+        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">+ צור הרגל חדש (במצב מתכנן בלבד):</div>
+        <div class="form-row">
+          <input id="rout-name" type="text" placeholder="שם ההרגל (למשל: תרגול בוקר)" style="flex:1;" />
+          <select id="rout-domain">
+            <option value="physical">פיזי</option>
+            <option value="mental">מנטלי</option>
+            <option value="ai_professional">AI</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <input id="rout-min" type="text" placeholder="גרסה מינימלית (למשל: 2 דקות נשימה/סט 1)" style="flex:1;" />
+          <button onclick="addRoutine()">צור הרגל</button>
+        </div>
+        <div class="form-row" style="margin-top:6px;">
+          <label>נשימה בפרוטוקול (שנ׳):</label>
+          <input id="prep-sec" type="number" value="45" min="20" max="120" style="width:65px;" />
+          <button class="secondary" onclick="savePrepProtocol()">עדכן פרוטוקול הכנה</button>
+        </div>
+      </div>
     </div>
+
+    <!-- Card 4: Growth Domains -->
     <div class="card">
-      <h2>🌱 תחומי התפתחות (ליבה מול העשרה)</h2>
-      <div id="growth-box">טוען...</div>
+      <div>
+        <h2>🌱 4. תחומי התפתחות (ליבה מול העשרה)</h2>
+        <div id="growth-box">טוען...</div>
+      </div>
+      <div class="form-box">
+        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">עדכון יעד או רמה בתחום התפתחות:</div>
+        <div class="form-row">
+          <select id="dom-slug">
+            <option value="mental">ליבה: התפתחות מנטלית</option>
+            <option value="physical">ליבה: התפתחות פיזית</option>
+            <option value="ai_professional">ליבה: AI מקצועי</option>
+            <option value="cooking">העשרה: בישול</option>
+            <option value="gardening">העשרה: גינון</option>
+            <option value="music">העשרה: נגינה</option>
+            <option value="drawing">העשרה: ציור</option>
+          </select>
+          <label>רמה נוכחית:</label>
+          <input id="dom-cur" type="number" value="5" min="1" max="10" style="width:55px;" />
+          <label>רצויה:</label>
+          <input id="dom-des" type="number" value="8" min="1" max="10" style="width:55px;" />
+        </div>
+        <div class="form-row">
+          <input id="dom-goal" type="text" placeholder="מטרה ארוכת טווח מעודכנת..." style="flex:1;" />
+          <button onclick="updateDomain()">שמור תחום</button>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="grid">
+    <!-- Card 5: Adaptive Challenges & Playfulness -->
     <div class="card">
-      <h2>🎯 אתגרים אדפטיביים ומשחקיות לא-תחרותית</h2>
-      <div id="challenges-box">טוען...</div>
-    </div>
-    <div class="card">
-      <h2>🧠 הערכת התקדמות מנטלית רב-חודשית (Assessment)</h2>
-      <div id="mental-box">טוען...</div>
-    </div>
-    <div class="card">
-      <h2>🎙 קליטה מהירה (קול / טלגרם – Rule Engine First)</h2>
-      <div style="display:flex; gap:8px; margin-bottom:10px;">
-        <input id="quick-input" type="text" placeholder="לדוגמה: ניצחון שקט: עצרתי לפני תגובה אוטומטית / מה הפעולה הבאה" />
-        <button onclick="sendQuickCapture()">שלח</button>
+      <div>
+        <h2>🎯 5. אתגרים אדפטיביים ומשחקיות לא-תחרותית</h2>
+        <div id="challenges-box">טוען...</div>
       </div>
-      <div id="ai-box">טוען...</div>
+      <div class="form-box">
+        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">+ הוסף אתגר אדפטיבי חדש:</div>
+        <div class="form-row">
+          <input id="chal-title" type="text" placeholder="שם האתגר (למשל: 5 עליות מתח נקיות)" style="flex:1;" />
+          <select id="chal-domain">
+            <option value="physical">פיזי</option>
+            <option value="mental">מנטלי</option>
+            <option value="ai_professional">AI</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>רמת קושי התחלתית:</label>
+          <input id="chal-diff" type="number" value="3" min="1" max="10" style="width:55px;" />
+          <button onclick="addChallenge()">צור אתגר</button>
+        </div>
+      </div>
     </div>
+
+    <!-- Card 6: Mental Progress & Silent Wins -->
     <div class="card">
-      <h2>🔌 שירותים מחוברים ו-TaskCommander</h2>
-      <div id="services-box">טוען...</div>
+      <div>
+        <h2>🧠 6. אימון מנטלי, ניצחונות שקטים והערכה רב-חודשית</h2>
+        <div id="mental-box">טוען...</div>
+      </div>
+      <div class="form-box">
+        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">+ תעד אירוע מנטלי או ניצחון שקט (שדות ציונים אופציונליים):</div>
+        <div class="form-row">
+          <input id="men-desc" type="text" placeholder="תיאור קצר של האירוע / התגובה שנבחרה" style="flex:1;" />
+        </div>
+        <div class="form-row">
+          <label><input id="men-silent" type="checkbox" /> ניצחון שקט (Silent Win)</label>
+          <label>עוצמת רגש (0-10):</label>
+          <input id="men-emo" type="number" placeholder="-" min="0" max="10" style="width:52px;" />
+          <label>סקרנות (0-10):</label>
+          <input id="men-cur" type="number" placeholder="-" min="0" max="10" style="width:52px;" />
+          <button onclick="recordMentalEvent()">שמור אירוע</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 7: Voice & Telegram Quick Capture -->
+    <div class="card">
+      <div>
+        <h2>🎙 7. קליטה מהירה (קול / טלגרם – Rule Engine First)</h2>
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+          <input id="quick-input" type="text" placeholder="לדוגמה: ניצחון שקט: עצרתי לפני תגובה / מה הפעולה הבאה" style="flex:1;" />
+          <button onclick="sendQuickCapture()">שלח</button>
+        </div>
+        <div id="ai-box">טוען...</div>
+      </div>
+      <div class="form-box" style="color:var(--muted);">
+        פקודות נתמכות ב-0 טוקנים: <code>מה הפעולה הבאה</code>, <code>צפרדע בוצעה</code>, <code>הוסף צפרדע: ...</code>, <code>ניצחון שקט: ...</code>, <code>פרוטוקול הכנה</code>, <code>הרגל בוצע</code>.
+      </div>
+    </div>
+
+    <!-- Card 8: Connected Services & TaskCommander -->
+    <div class="card">
+      <div>
+        <h2>🔌 8. שירותים מחוברים ו-TaskCommander</h2>
+        <div id="services-box">טוען...</div>
+      </div>
+      <div class="form-box">
+        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">+ הוסף משימה תפעולית ל-TaskCommander:</div>
+        <div class="form-row">
+          <input id="tc-title" type="text" placeholder="כותרת משימה תפעולית להיום..." style="flex:1;" />
+          <button onclick="addTaskCommanderTask()">הוסף משימה</button>
+        </div>
+      </div>
     </div>
   </div>
 
+  <!-- Card 9: Rules Catalog & Rule Builder -->
   <div class="card" style="margin-bottom: 20px;">
-    <h2>📜 קטלוג כללים פעילים (Rules Catalog & Versioning – 20 Rules)</h2>
+    <h2>📜 9. קטלוג כללים פעילים ובונה חוקים דטרמיניסטיים (Rules Catalog & Builder)</h2>
+    <div class="form-box" style="margin-top:0; margin-bottom:14px; border-top:none; background:#0b1120; padding:12px; border-radius:8px;">
+      <div style="font-weight:600; margin-bottom:8px; color:var(--accent);">➕ בניית חוק דטרמיניסטי חדש במנוע הכללים (מצב מתכנן):</div>
+      <div class="form-row">
+        <input id="rule-id" type="text" placeholder="מזהה (למשל: CUSTOM-001)" style="width:140px;" />
+        <input id="rule-name" type="text" placeholder="שם החוק בעברית" style="flex:1;" />
+        <select id="rule-domain">
+          <option value="planning">תכנון יומי (planning)</option>
+          <option value="frogs">צפרדעים (frogs)</option>
+          <option value="habits">הרגלים (habits)</option>
+          <option value="mental">מנטלי (mental)</option>
+          <option value="challenges">אתגרים (challenges)</option>
+          <option value="control">בקרה ואוטונומיה (control)</option>
+        </select>
+        <label>עדיפות:</label>
+        <input id="rule-prio" type="number" value="85" min="1" max="200" style="width:70px;" />
+      </div>
+      <div class="form-row">
+        <label>אירוע מפעיל (Trigger):</label>
+        <select id="rule-evt">
+          <option value="daily_plan.evaluate">daily_plan.evaluate (בדיקת תוכנית יומית)</option>
+          <option value="evening_review.frogs_check">evening_review.frogs_check (בדיקת מאגר צפרדעים בערב)</option>
+          <option value="frog.morning_selection">frog.morning_selection (בחירת צפרדע בבוקר)</option>
+          <option value="routine.resistance_detected">routine.resistance_detected (זיהוי התנגדות להרגל)</option>
+          <option value="challenge.evaluate">challenge.evaluate (הערכת אתגר אדפטיבי)</option>
+          <option value="assessment.trend_requested">assessment.trend_requested (בקשת מגמה מנטלית)</option>
+        </select>
+        <label>שדה תנאי:</label>
+        <input id="rule-field" type="text" value="payload.energy_level" style="width:180px;" />
+        <select id="rule-op">
+          <option value="lte">קטן או שווה (lte)</option>
+          <option value="lt">קטן מ- (lt)</option>
+          <option value="gte">גדול או שווה (gte)</option>
+          <option value="gt">גדול מ- (gt)</option>
+          <option value="eq">שווה ל- (eq)</option>
+        </select>
+        <input id="rule-val" type="text" value="2" placeholder="ערך" style="width:80px;" />
+        <label>תוצאה:</label>
+        <select id="rule-eff">
+          <option value="recommendation_only">המלצה (recommendation_only)</option>
+          <option value="allow">אישור אוטומטי (allow)</option>
+          <option value="require_approval">דרוש אישור משתמש (require_approval)</option>
+          <option value="block">חסימת פעולה (block)</option>
+        </select>
+        <button onclick="createNewRule()">בנה ושמור חוק</button>
+      </div>
+    </div>
+
     <div style="overflow-x:auto;">
       <table id="rules-table">
         <thead>
@@ -170,10 +392,11 @@
             <th>מזהה</th>
             <th>שם הכלל</th>
             <th>תחום</th>
+            <th>אירוע מפעיל</th>
             <th>עדיפות</th>
             <th>גרסה</th>
             <th>סטטוס</th>
-            <th>פעולות</th>
+            <th>פעולות ועריכה</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -181,19 +404,25 @@
     </div>
   </div>
 
+  <!-- Card 10 & 11: Decisions, Pending Approvals & Inspector -->
   <div class="grid">
     <div class="card">
-      <h2>⚖️ החלטות אחרונות, אישורים ממתינים והסבר דטרמיניסטי</h2>
+      <h2>⚖️ 10. החלטות אחרונות ואישורים ממתינים</h2>
+      <div id="approvals-box" style="margin-bottom:10px;"></div>
       <div id="decisions-box">טוען...</div>
     </div>
     <div class="card">
-      <h2>🔍 מבקר החלטות / היסטוריית גרסאות / פלט מחזורים</h2>
+      <h2>🔍 11. מבקר החלטות / היסטוריית גרסאות / פלט מחזורים</h2>
       <pre id="inspector-box">בחר החלטה, כלל או הרץ מחזור כדי לצפות בפירוט המלא.</pre>
     </div>
   </div>
 
   <script>
     let currentState = null;
+
+    function showOutput(title, payload) {
+      document.getElementById('inspector-box').textContent = title + '\n\n' + JSON.stringify(payload, null, 2);
+    }
 
     async function loadOverview() {
       const res = await fetch('/api/control-center/overview?user_id=moshe');
@@ -206,12 +435,14 @@
       const p = data.policy || {};
       const roleBadge = document.getElementById('role-badge');
       roleBadge.textContent = p.active_role === 'executor' ? 'תפקיד: מבצע (Executor)' : 'תפקיד: מתכנן (Planner)';
+      document.getElementById('pol-minutes').value = p.max_daily_minutes ?? 180;
+      document.getElementById('pol-diff').value = p.max_challenge_difficulty ?? 5;
 
       document.getElementById('policy-box').innerHTML = `
+        <div><strong>תפקיד פעיל כעת:</strong> <span class="badge ok">${p.active_role === 'executor' ? 'מבצע (Executor)' : 'מתכנן (Planner)'}</span></div>
         <div><strong>אוטומציה:</strong> ${p.automation_paused ? '<span class="badge warn">מושהית</span>' : '<span class="badge ok">פעילה</span>'}</div>
-        <div><strong>תקרת דקות יומית:</strong> ${p.max_daily_minutes} דק׳</div>
-        <div><strong>תקרת קושי אתגר:</strong> רמה ${p.max_challenge_difficulty}</div>
-        <div><strong>אישורים ממתינים:</strong> <span class="badge ${(data.pending_approvals || []).length ? 'warn' : 'ok'}">${(data.pending_approvals || []).length}</span></div>
+        <div><strong>תקרת דקות יומית:</strong> ${p.max_daily_minutes} דק׳ | <strong>תקרת קושי אתגר:</strong> רמה ${p.max_challenge_difficulty}</div>
+        <div><strong>גרסת מדיניות:</strong> v${p.version}</div>
         <div style="margin-top:8px;">
           <button class="secondary" onclick="toggleAutomation(${!p.automation_paused})">
             ${p.automation_paused ? 'חדש אוטומציה' : 'השהה אוטומציה'}
@@ -220,39 +451,79 @@
       `;
 
       const frogs = data.frogs || {};
-      const frogsList = (frogs.frogs || []).slice(0, 4).map(f =>
-        `<li><strong>${f.name}</strong> (${f.frog_type === 'ongoing' ? 'מתמשכת' : 'חד-פעמית'}, התנגדות ${f.resistance_level}/10)</li>`
-      ).join('');
+      const frogsList = (frogs.frogs || []).map(f => `
+        <div class="item-row">
+          <div>
+            <strong>${f.name}</strong>
+            <span class="badge">${f.frog_type === 'ongoing' ? 'מתמשכת' : 'חד-פעמית'}</span>
+            <span style="color:var(--muted);">התנגדות ${f.resistance_level}/10</span>
+          </div>
+          <div style="display:flex; gap:4px;">
+            <button class="ok" onclick="reportFrog('${f.frog_id}', 'completed')">בוצע ✓</button>
+            <button class="secondary" onclick="reportFrog('${f.frog_id}', 'partial')">חלקי</button>
+            <button class="secondary" onclick="reportFrog('${f.frog_id}', 'deferred')">דחה</button>
+          </div>
+        </div>
+      `).join('');
       document.getElementById('frogs-box').innerHTML = `
         <div><strong>צפרדעים פעילות במאגר:</strong>
           <span class="badge ${frogs.replenishment_needed ? 'warn' : 'ok'}">${frogs.active_count ?? 0} / ${frogs.minimum_required ?? 4}</span>
+          ${frogs.replenishment_needed ? '<span style="color:#fbbf24; font-size:0.8rem;"> (מומלץ להשלים ל-4 צפרדעים)</span>' : ''}
         </div>
-        <ul style="margin:8px 0; padding-right:18px; font-size:0.86rem;">${frogsList || '<li>אין צפרדעים פעילות כרגע</li>'}</ul>
+        <div style="margin-top:8px;">${frogsList || '<div style="color:var(--muted);">אין צפרדעים פעילות כרגע – הוסף צפרדע למטה.</div>'}</div>
       `;
 
       const routines = data.routines || {};
       const prep = data.prep_protocol || {};
+      document.getElementById('prep-sec').value = prep.breathing_seconds ?? 45;
+      const routList = (routines.routines || []).map(r => `
+        <div class="item-row">
+          <div>
+            <strong>${r.name}</strong> (${r.domain}) – רצף גמיש: <span class="badge ok">${r.flexible_streak_count}</span>
+            <div style="font-size:0.78rem; color:var(--muted);">גרסה מינימלית: ${r.minimum_viable_version}</div>
+          </div>
+          <div style="display:flex; gap:4px;">
+            <button class="ok" onclick="reportRoutine('${r.routine_id}', 'completed')">מלא ✓</button>
+            <button class="secondary" onclick="reportRoutine('${r.routine_id}', 'minimum_completed')">מינימלי</button>
+            <button class="secondary" onclick="reportRoutine('${r.routine_id}', 'skipped')">דלג (ללא קנס)</button>
+          </div>
+        </div>
+      `).join('');
       document.getElementById('routines-box').innerHTML = `
-        <div><strong>הרגלים פעילים:</strong> ${routines.count ?? 0}</div>
-        <div><strong>פרוטוקול הכנה (6 שלבים):</strong> ${prep.breathing_seconds ?? 45} שניות נשימה</div>
-        <div style="font-size:0.83rem; color:var(--muted); margin-top:4px;">פתיח נעים מוגבל ל-${prep.pleasant_starter_max_seconds ?? 45} שניות (למניעת דחיינות)</div>
+        <div><strong>הרגלים פעילים:</strong> ${routines.count ?? 0} | <strong>פרוטוקול הכנה (6 שלבים):</strong> ${prep.breathing_seconds ?? 45} שנ׳ נשימה</div>
+        <div style="margin-top:8px;">${routList || '<div style="color:var(--muted);">אין הרגלים רשומים – צור הרגל למטה.</div>'}</div>
       `;
 
       const gd = data.growth_domains || {};
-      const coreCount = (gd.core_domains || []).length;
-      const enrichCount = (gd.enrichment_domains || []).length;
+      const domRows = (gd.domains || []).map(d => `
+        <div class="item-row">
+          <div>
+            <strong>${d.name}</strong> <span class="badge ${d.tier === 'core' ? 'ok' : ''}">${d.tier === 'core' ? 'ליבה (משקל 10)' : 'העשרה (משקל 4)'}</span>
+          </div>
+          <div>רמה ${d.current_level} ← יעד ${d.desired_level}</div>
+        </div>
+      `).join('');
       document.getElementById('growth-box').innerHTML = `
-        <div><strong>תחומי ליבה (משקל 10):</strong> ${coreCount} (מנטלי, פיזי, AI)</div>
-        <div><strong>תחומי העשרה (משקל 4):</strong> ${enrichCount}</div>
-        <div><strong>כיסוי קוגניטיבי ע"י AI:</strong> <span class="badge ${gd.cognitive_covered_by_ai ? 'ok' : 'warn'}">${gd.cognitive_covered_by_ai ? 'פעיל' : 'רגיל'}</span></div>
+        <div><strong>כיסוי קוגניטיבי ע"י AI:</strong> <span class="badge ${gd.cognitive_covered_by_ai ? 'ok' : 'warn'}">${gd.cognitive_covered_by_ai ? 'מכוסה ע"י למידת AI' : 'רגיל'}</span></div>
+        <div style="margin-top:6px; max-height:150px; overflow-y:auto;">${domRows}</div>
       `;
 
       const ch = data.challenges || {};
       const play = data.playful_engagement || {};
+      const chalRows = (ch.challenges || []).map(c => `
+        <div class="item-row">
+          <div>
+            <strong>${c.title}</strong> (${c.domain_slug}) – קושי <span class="badge">${c.difficulty_level}/${c.max_approved_difficulty}</span>
+          </div>
+          <div style="display:flex; gap:4px;">
+            <button class="ok" onclick="evalChallenge('${c.challenge_id}', 'completed', false)">הושלם ✓</button>
+            <button class="warn" onclick="evalChallenge('${c.challenge_id}', 'completed', true)">דווח כאב/מגבלה</button>
+          </div>
+        </div>
+      `).join('');
       document.getElementById('challenges-box').innerHTML = `
-        <div><strong>אתגרים פעילים:</strong> ${ch.count ?? 0}</div>
-        <div><strong>ניקוד משחקיות אישי:</strong> <span class="badge ok">${play.total_playful_points ?? 0} נק׳ (שלב ${play.stage_level ?? 1})</span></div>
-        <div style="font-size:0.8rem; color:var(--muted); margin-top:4px;">ללא קנסות (${play.penalties_count ?? 0}) ומופרד לחלוטין ממדדי Assessment.</div>
+        <div><strong>אתגרים פעילים:</strong> ${ch.count ?? 0} | <strong>ניקוד משחקיות אישי:</strong> <span class="badge ok">${play.total_playful_points ?? 0} נק׳ (שלב ${play.stage_level ?? 1})</span></div>
+        <div style="margin-top:6px;">${chalRows || '<div style="color:var(--muted);">אין אתגרים פעילים – צור אתגר למטה.</div>'}</div>
       `;
 
       const ma = data.mental_progress_assessment || {};
@@ -260,21 +531,20 @@
       document.getElementById('mental-box').innerHTML = `
         <div><strong>אירועים מתועדים:</strong> ${dq.total_events ?? 0} (מינימום למגמה: ${dq.minimum_events_required ?? 5})</div>
         <div><strong>ניצחונות שקטים (Silent Wins):</strong> <span class="badge ok">${dq.silent_wins_count ?? 0}</span></div>
-        <div><strong>סטטוס מגמה:</strong> <span class="badge ${ma.sufficient_data ? 'ok' : 'warn'}">${ma.trend_status ?? 'insufficient_data'}</span></div>
-        <div style="font-size:0.78rem; color:var(--muted); margin-top:4px;">${ma.non_diagnostic_disclaimer || ''}</div>
+        <div><strong>סטטוס מגמה רב-חודשית:</strong> <span class="badge ${ma.sufficient_data ? 'ok' : 'warn'}">${ma.trend_status ?? 'insufficient_data'}</span></div>
+        <div style="font-size:0.78rem; color:var(--muted); margin-top:4px;">${ma.message_he || ma.non_diagnostic_disclaimer || ''}</div>
       `;
 
       const ai = data.ai_usage || {};
       document.getElementById('ai-box').innerHTML = `
         <div><strong>מעקפים דטרמיניסטיים (0 טוקנים):</strong> <span class="badge ok">${ai.deterministic_bypass_count ?? 0}</span></div>
-        <div><strong>קריאות LLM:</strong> ${ai.llm_call_count ?? 0} ($${ai.llm_cost_usd ?? 0})</div>
-        <div><strong>קריאות STT/TTS (קול נפרד):</strong> ${ai.speech_stt_tts_call_count ?? 0} ($${ai.speech_stt_tts_cost_usd ?? 0})</div>
+        <div><strong>קריאות LLM:</strong> ${ai.llm_call_count ?? 0} ($${ai.llm_cost_usd ?? 0}) | <strong>קריאות STT/TTS (קול):</strong> ${ai.speech_stt_tts_call_count ?? 0} ($${ai.speech_stt_tts_cost_usd ?? 0})</div>
       `;
 
       const svcs = data.connected_services || {};
       const tc = data.task_commander || {};
       document.getElementById('services-box').innerHTML = `
-        <div style="margin-bottom:6px;"><strong>TaskCommander:</strong> ${(tc.today || []).length} להיום | ${tc.done_instances || 0} הושלמו</div>
+        <div style="margin-bottom:6px;"><strong>TaskCommander:</strong> ${(tc.today || []).length} משימות להיום | ${tc.done_instances || 0} הושלמו</div>
       ` + Object.entries(svcs).map(([k, v]) =>
         `<div><strong>${k}:</strong> <span class="badge ${v.connected ? 'ok' : 'warn'}">${v.connected ? 'מחובר' : 'לא זמין'}</span></div>`
       ).join('');
@@ -285,15 +555,35 @@
           <td><code>${r.rule_id}</code></td>
           <td>${r.name}</td>
           <td>${r.domain}</td>
-          <td>${r.priority}</td>
+          <td><code>${(r.event_types || []).join(', ') || r.trigger || ''}</code></td>
+          <td>
+            <input type="number" value="${r.priority}" style="width:60px;" onchange="changeRulePriority('${r.rule_id}', this.value)" />
+          </td>
           <td>v${r.version}</td>
           <td><span class="badge ${r.enabled ? 'ok' : 'danger'}">${r.enabled ? 'פעיל' : 'מושבת'}</span></td>
           <td style="display:flex; gap:6px;">
             <button class="secondary" onclick="toggleRule('${r.rule_id}', ${!r.enabled})">${r.enabled ? 'השבת' : 'הפעל'}</button>
             <button class="secondary" onclick="showRuleVersions('${r.rule_id}')">גרסאות</button>
+            ${r.version > 1 ? `<button class="warn" onclick="rollbackRule('${r.rule_id}', 1)">שחזר ל-v1</button>` : ''}
           </td>
         </tr>
       `).join('');
+
+      const approvals = data.pending_approvals || [];
+      document.getElementById('approvals-box').innerHTML = approvals.length === 0
+        ? ''
+        : `<div style="background:rgba(245,158,11,0.12); padding:8px; border-radius:8px; border:1px solid var(--warn);">
+            <strong>⏳ אישורים ממתינים להחלטתך (${approvals.length}):</strong>
+            ${approvals.map(a => `
+              <div class="item-row">
+                <div><strong>${a.title}</strong></div>
+                <div style="display:flex; gap:4px;">
+                  <button class="ok" onclick="decideApproval('${a.id}', 'approved')">אשר ✓</button>
+                  <button class="secondary" onclick="decideApproval('${a.id}', 'rejected')">דחה ✗</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>`;
 
       const decisions = data.recent_decisions || [];
       document.getElementById('decisions-box').innerHTML = decisions.length === 0
@@ -310,6 +600,251 @@
             </div>
           </div>
         `).join('');
+    }
+
+    async function savePolicyBounds() {
+      const max_daily_minutes = parseInt(document.getElementById('pol-minutes').value, 10);
+      const max_challenge_difficulty = parseInt(document.getElementById('pol-diff').value, 10);
+      const res = await fetch('/api/control-center/policy', {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          user_id: 'moshe',
+          max_daily_minutes,
+          max_challenge_difficulty,
+          approval_confirmed: true
+        })
+      });
+      const data = await res.json();
+      showOutput('⚙️ מדיניות וגבולות אוטונומיה עודכנו:', data);
+      await loadOverview();
+    }
+
+    async function addFrog() {
+      const name = document.getElementById('frog-name').value.trim();
+      if (!name) return alert('נא להזין שם לצפרדע');
+      const res = await fetch('/api/control-center/frogs', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          user_id: 'moshe',
+          name,
+          frog_type: document.getElementById('frog-type').value,
+          domain: document.getElementById('frog-domain').value,
+          resistance_level: parseInt(document.getElementById('frog-res').value, 10) || 7
+        })
+      });
+      const data = await res.json();
+      document.getElementById('frog-name').value = '';
+      showOutput('🐸 צפרדע חדשה נוספה למאגר:', data);
+      await loadOverview();
+    }
+
+    async function reportFrog(frogId, outcome) {
+      const res = await fetch(`/api/control-center/frogs/${encodeURIComponent(frogId)}/report?outcome=${outcome}&user_id=moshe`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      showOutput('🐸 דיווח ביצוע צפרדע:', data);
+      await loadOverview();
+    }
+
+    async function addRoutine() {
+      const name = document.getElementById('rout-name').value.trim();
+      if (!name) return alert('נא להזין שם להרגל');
+      const res = await fetch('/api/control-center/routines', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          user_id: 'moshe',
+          name,
+          domain: document.getElementById('rout-domain').value,
+          minimum_viable_version: document.getElementById('rout-min').value.trim() || '2 דקות גרסה מינימלית'
+        })
+      });
+      const data = await res.json();
+      document.getElementById('rout-name').value = '';
+      showOutput('🔄 יצירת הרגל:', data);
+      await loadOverview();
+    }
+
+    async function reportRoutine(routineId, outcome) {
+      const res = await fetch(`/api/control-center/routines/${encodeURIComponent(routineId)}/report?outcome=${outcome}&user_id=moshe`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      showOutput('🔄 דיווח ביצוע הרגל:', data);
+      await loadOverview();
+    }
+
+    async function savePrepProtocol() {
+      const breathing_seconds = parseInt(document.getElementById('prep-sec').value, 10) || 45;
+      const res = await fetch('/api/control-center/prep-protocol', {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', breathing_seconds})
+      });
+      const data = await res.json();
+      showOutput('🧘 פרוטוקול הכנה עודכן:', data);
+      await loadOverview();
+    }
+
+    async function updateDomain() {
+      const slug = document.getElementById('dom-slug').value;
+      const current_level = parseInt(document.getElementById('dom-cur').value, 10);
+      const desired_level = parseInt(document.getElementById('dom-des').value, 10);
+      const long_term_goal = document.getElementById('dom-goal').value.trim() || undefined;
+      const res = await fetch('/api/control-center/domains', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', slug, current_level, desired_level, long_term_goal})
+      });
+      const data = await res.json();
+      document.getElementById('dom-goal').value = '';
+      showOutput('🌱 תחום התפתחות עודכן:', data);
+      await loadOverview();
+    }
+
+    async function addChallenge() {
+      const title = document.getElementById('chal-title').value.trim();
+      if (!title) return alert('נא להזין כותרת לאתגר');
+      const domain_slug = document.getElementById('chal-domain').value;
+      const difficulty_level = parseInt(document.getElementById('chal-diff').value, 10) || 3;
+      const res = await fetch('/api/control-center/challenges', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          user_id: 'moshe',
+          title,
+          domain_slug,
+          challenge_type: domain_slug === 'physical' ? 'physical' : 'mental',
+          difficulty_level
+        })
+      });
+      const data = await res.json();
+      document.getElementById('chal-title').value = '';
+      showOutput('🎯 אתגר אדפטיבי נוצר:', data);
+      await loadOverview();
+    }
+
+    async function evalChallenge(challengeId, outcome, pain_or_limitation) {
+      const res = await fetch(`/api/control-center/challenges/${encodeURIComponent(challengeId)}/evaluate`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          user_id: 'moshe',
+          outcome,
+          pain_or_limitation,
+          requested_difficulty_delta: pain_or_limitation ? 1 : 0
+        })
+      });
+      const data = await res.json();
+      showOutput('🎯 הערכת אתגר אדפטיבי:', data);
+      await loadOverview();
+    }
+
+    async function recordMentalEvent() {
+      const short_description = document.getElementById('men-desc').value.trim();
+      if (!short_description) return alert('נא להזין תיאור קצר לאירוע המנטלי');
+      const is_silent_win = document.getElementById('men-silent').checked;
+      const emoVal = document.getElementById('men-emo').value;
+      const curVal = document.getElementById('men-cur').value;
+      const payload = {
+        user_id: 'moshe',
+        short_description,
+        actual_response: short_description,
+        is_silent_win
+      };
+      if (emoVal !== '') payload.initial_emotion_intensity = parseInt(emoVal, 10);
+      if (curVal !== '') payload.curiosity_ability = parseInt(curVal, 10);
+
+      const res = await fetch('/api/control-center/mental-events', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      document.getElementById('men-desc').value = '';
+      document.getElementById('men-emo').value = '';
+      document.getElementById('men-cur').value = '';
+      showOutput('🧠 אירוע מנטלי נשמר (ערכים חסרים נשמרו כ-NULL ולא כ-0):', data);
+      await loadOverview();
+    }
+
+    async function addTaskCommanderTask() {
+      const title = document.getElementById('tc-title').value.trim();
+      if (!title) return alert('נא להזין כותרת למשימה');
+      const res = await fetch('/api/task-commander/tasks', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', title, schedule_type: 'daily', estimated_minutes: 20})
+      });
+      const data = await res.json();
+      document.getElementById('tc-title').value = '';
+      showOutput('📋 משימה חדשה נוספה ל-TaskCommander:', data);
+      await loadOverview();
+    }
+
+    async function createNewRule() {
+      const rule_id = document.getElementById('rule-id').value.trim();
+      const name = document.getElementById('rule-name').value.trim();
+      if (!rule_id || !name) return alert('נא להזין מזהה חוק ושם חוק');
+      const rawVal = document.getElementById('rule-val').value.trim();
+      const parsedVal = !isNaN(Number(rawVal)) && rawVal !== '' ? Number(rawVal) : (rawVal === 'true' ? true : (rawVal === 'false' ? false : rawVal));
+      const res = await fetch('/api/control-center/rules', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          user_id: 'moshe',
+          rule_id,
+          name,
+          domain: document.getElementById('rule-domain').value,
+          priority: parseInt(document.getElementById('rule-prio').value, 10) || 85,
+          event_type: document.getElementById('rule-evt').value,
+          field: document.getElementById('rule-field').value,
+          operator: document.getElementById('rule-op').value,
+          value: parsedVal,
+          effect_type: document.getElementById('rule-eff').value
+        })
+      });
+      const data = await res.json();
+      showOutput('📜 חוק דטרמיניסטי חדש נוצר ונשמר בקטלוג:', data);
+      await loadOverview();
+    }
+
+    async function changeRulePriority(ruleId, newPriority) {
+      const res = await fetch(`/api/control-center/rules/${encodeURIComponent(ruleId)}`, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          user_id: 'moshe',
+          priority: parseInt(newPriority, 10),
+          change_note: `Updated priority to ${newPriority} in Control Center UI`
+        })
+      });
+      const data = await res.json();
+      showOutput(`📜 עדיפות החוק ${ruleId} עודכנה (נשמרה גרסה חדשה):`, data);
+      await loadOverview();
+    }
+
+    async function rollbackRule(ruleId, targetVersion) {
+      const res = await fetch(`/api/control-center/rules/${encodeURIComponent(ruleId)}/rollback`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', target_version: targetVersion})
+      });
+      const data = await res.json();
+      showOutput(`⏪ החוק ${ruleId} שוחזר לגרסה v${targetVersion}:`, data);
+      await loadOverview();
+    }
+
+    async function decideApproval(approvalId, decision) {
+      const res = await fetch(`/api/control-center/approvals/${encodeURIComponent(approvalId)}/decide?decision=${decision}&user_id=moshe`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      showOutput('⚖️ החלטת אישור נשמרה:', data);
+      await loadOverview();
     }
 
     async function runCycle(cycleName) {

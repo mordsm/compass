@@ -54,6 +54,90 @@ class PolicyUpdateRequest(BaseModel):
     approval_confirmed: bool = False
 
 
+class CreateCatalogRuleRequest(BaseModel):
+    user_id: str = "moshe"
+    rule_id: str
+    name: str
+    domain: str = "custom"
+    event_type: str = "daily_plan.evaluate"
+    field: str = "payload.energy_level"
+    operator: str = "lte"
+    value: Any = 2
+    effect_type: str = "recommendation_only"
+    reason_code: str = "CUSTOM_RULE_MATCHED"
+    priority: int = Field(default=75, ge=1, le=200)
+    approval_required: bool = False
+    explanation_template: str | None = None
+
+
+class UIAddFrogRequest(BaseModel):
+    user_id: str = "moshe"
+    name: str
+    domain: str = "physical"
+    frog_type: str = "one_time"
+    importance: int = 8
+    resistance_level: int = 7
+    urgency: int = 6
+    estimated_minutes: int = 20
+
+
+class UIAddRoutineRequest(BaseModel):
+    user_id: str = "moshe"
+    name: str
+    domain: str = "physical"
+    minimum_viable_version: str = "2 דקות גרסה מינימלית"
+    estimated_minutes: int = 15
+    trigger_time_or_event: str = "08:00"
+
+
+class UIUpdatePrepRequest(BaseModel):
+    user_id: str = "moshe"
+    breathing_seconds: int = 45
+    pleasant_starter_action: str = "לגימת מים או מתיחה נעימה"
+    pleasant_starter_max_seconds: int = 45
+
+
+class UIUpdateDomainRequest(BaseModel):
+    user_id: str = "moshe"
+    slug: str
+    long_term_goal: str | None = None
+    current_level: int | None = None
+    desired_level: int | None = None
+    intervention_level: str | None = None
+
+
+class UIAddChallengeRequest(BaseModel):
+    user_id: str = "moshe"
+    domain_slug: str = "physical"
+    challenge_type: str = "physical"
+    title: str
+    difficulty_level: int = 3
+    max_approved_difficulty: int = 5
+    duration_days: int = 14
+
+
+class UIEvaluateChallengeRequest(BaseModel):
+    user_id: str = "moshe"
+    outcome: str = "completed"
+    pain_or_limitation: bool = False
+    perceived_effort: int = 5
+    resistance_level: int = 4
+    requested_difficulty_delta: int = 0
+
+
+class UIRecordMentalEventRequest(BaseModel):
+    user_id: str = "moshe"
+    short_description: str
+    trigger_text: str = "אירוע יומיומי"
+    actual_response: str = "עצירה ובחירה מודעת"
+    is_silent_win: bool = False
+    initial_emotion_intensity: int | None = None
+    defensive_or_attack_urge: int | None = None
+    curiosity_ability: int | None = None
+    choice_ability: int | None = None
+    recovery_duration_minutes: int | None = None
+
+
 @router.get("/overview", operation_id="getSystemControlCenterOverview")
 def get_control_center_overview(user_id: str = Query(default="moshe")) -> dict[str, Any]:
     repo = CompassRepository()
@@ -302,3 +386,127 @@ def update_user_autonomy_policy(request: PolicyUpdateRequest) -> dict[str, Any]:
     updated = repo.update_user_autonomy_policy(request.user_id, patch)
     repo.audit("control_center.policy.update", request.user_id, updated)
     return {"success": True, "status": "updated", "policy": updated}
+
+
+@router.post("/rules", operation_id="createCatalogRule")
+def create_catalog_rule(request: CreateCatalogRuleRequest) -> dict[str, Any]:
+    repo = CompassRepository()
+    policy = repo.get_user_autonomy_policy(request.user_id)
+    if policy["active_role"] == "executor":
+        raise HTTPException(status_code=403, detail="planner-role-required-to-create-rules")
+
+    now = datetime.now(timezone.utc).isoformat()
+    snapshot = {
+        "rule_id": request.rule_id.strip().upper(),
+        "name": request.name.strip(),
+        "description": request.name.strip(),
+        "category": "policy",
+        "domain": request.domain.strip(),
+        "trigger": request.event_type.strip(),
+        "priority": request.priority,
+        "version": 1,
+        "status": "active",
+        "enabled": True,
+        "stop_processing": False,
+        "approval_required": request.approval_required or (request.effect_type == "require_approval"),
+        "explanation_template": request.explanation_template
+        or f"הכלל {request.rule_id.strip().upper()} ({request.name.strip()}) הופעל בעקבות {request.event_type}.",
+        "owner": request.user_id,
+        "updated_at": now,
+        "event_types": [request.event_type.strip()],
+        "conditions": [
+            {
+                "field": request.field.strip(),
+                "operator": request.operator.strip(),
+                "value": request.value,
+            }
+        ],
+        "effects": [
+            {
+                "effect_type": request.effect_type.strip(),
+                "reason_code": request.reason_code.strip(),
+                "parameters": {},
+            }
+        ],
+    }
+    saved = repo.save_rule_override(
+        rule_id=snapshot["rule_id"],
+        snapshot=snapshot,
+        updated_by=request.user_id,
+        change_note="Created custom rule via System Control Center",
+    )
+    repo.audit("control_center.rule.create", request.user_id, {"rule_id": snapshot["rule_id"]})
+    return {"success": True, "rule": saved}
+
+
+@router.post("/frogs", operation_id="createFrogFromControlCenter")
+def create_frog_from_control_center(request: UIAddFrogRequest) -> dict[str, Any]:
+    return FrogsService().create_frog(request.model_dump())
+
+
+@router.post("/frogs/{frog_id}/report", operation_id="reportFrogFromControlCenter")
+def report_frog_from_control_center(frog_id: str, outcome: str = "completed", user_id: str = "moshe") -> dict[str, Any]:
+    return FrogsService().report_frog_execution(frog_id, user_id=user_id, outcome=outcome)
+
+
+@router.post("/routines", operation_id="createRoutineFromControlCenter")
+def create_routine_from_control_center(request: UIAddRoutineRequest) -> dict[str, Any]:
+    return RoutinesAndExecutionService().create_routine(request.model_dump())
+
+
+@router.post("/routines/{routine_id}/report", operation_id="reportRoutineFromControlCenter")
+def report_routine_from_control_center(routine_id: str, outcome: str = "completed", user_id: str = "moshe") -> dict[str, Any]:
+    return RoutinesAndExecutionService().report_routine_execution(
+        routine_id,
+        user_id=user_id,
+        outcome=outcome,
+        used_minimum_version=(outcome == "minimum_completed"),
+    )
+
+
+@router.patch("/prep-protocol", operation_id="updatePrepProtocolFromControlCenter")
+def update_prep_from_control_center(request: UIUpdatePrepRequest) -> dict[str, Any]:
+    patch = request.model_dump(exclude={"user_id"})
+    return {"success": True, "protocol": RoutinesAndExecutionService().update_prep_protocol(request.user_id, patch)}
+
+
+@router.post("/domains", operation_id="updateDomainFromControlCenter")
+def update_domain_from_control_center(request: UIUpdateDomainRequest) -> dict[str, Any]:
+    return GrowthChallengesAndPlayService().upsert_domain(request.model_dump(exclude_none=True))
+
+
+@router.post("/challenges", operation_id="createChallengeFromControlCenter")
+def create_challenge_from_control_center(request: UIAddChallengeRequest) -> dict[str, Any]:
+    return GrowthChallengesAndPlayService().create_challenge(request.model_dump())
+
+
+@router.post("/challenges/{challenge_id}/evaluate", operation_id="evaluateChallengeFromControlCenter")
+def evaluate_challenge_from_control_center(challenge_id: str, request: UIEvaluateChallengeRequest) -> dict[str, Any]:
+    return GrowthChallengesAndPlayService().evaluate_and_adapt_challenge(
+        challenge_id,
+        user_id=request.user_id,
+        outcome=request.outcome,
+        pain_or_limitation=request.pain_or_limitation,
+        perceived_effort=request.perceived_effort,
+        resistance_level=request.resistance_level,
+        requested_difficulty_delta=request.requested_difficulty_delta,
+    )
+
+
+@router.post("/mental-events", operation_id="recordMentalEventFromControlCenter")
+def record_mental_event_from_control_center(request: UIRecordMentalEventRequest) -> dict[str, Any]:
+    return MentalSkillsService().record_mental_event(request.model_dump(exclude_none=True))
+
+
+@router.post("/approvals/{approval_id}/decide", operation_id="decideApprovalFromControlCenter")
+def decide_approval_from_control_center(approval_id: str, decision: str = "approved", user_id: str = "moshe") -> dict[str, Any]:
+    repo = CompassRepository()
+    item = repo.decide_approval_request(approval_id, status=decision, decision_by=user_id, decision_notes="Decided via Control Center")
+    if not item:
+        raise HTTPException(status_code=404, detail="approval-not-found")
+    if decision == "approved" and item.get("action_type") in {"policy.update", "monthly_policy.update"}:
+        proposed = item.get("proposed_action") or {}
+        if isinstance(proposed, dict) and proposed:
+            repo.update_user_autonomy_policy(user_id, proposed)
+    return {"success": True, "approval": item}
+
