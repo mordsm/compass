@@ -239,11 +239,22 @@
     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
       <span id="role-badge" class="badge ok">תפקיד: מתכנן (Planner)</span>
       <button onclick="toggleRole()">החלף מתכנן / מבצע</button>
-      <button class="secondary" onclick="runCycle('morning')">🌅 הרץ מחזור בוקר</button>
-      <button class="secondary" onclick="runCycle('intraday')">▶️ הפעולה הבאה (מבצע)</button>
-      <button class="secondary" onclick="runCycle('evening')">🌙 הרץ סיכום ערב</button>
-      <button class="secondary" onclick="runCycle('weekly')">📅 סיכום שבועי</button>
-      <button class="secondary" onclick="runCycle('monthly')">🗓 הערכה חודשית</button>
+      <select id="ctx-mode-select" onchange="changeContextMode(this.value)" title="מצב הקשר (Context Mode)">
+        <option value="normal">מצב: יום רגיל</option>
+        <option value="low_energy">מצב: אנרגיה נמוכה</option>
+        <option value="overload">מצב: עומס</option>
+        <option value="sick">מצב: מחלה</option>
+        <option value="quiet_meeting">מצב שקט / בקרבת אנשים</option>
+        <option value="shabbat">מצב: שבת</option>
+        <option value="focus">מצב: מיקוד (Focus)</option>
+      </select>
+      <button id="mute-btn" class="warn" onclick="toggleGlobalMute()">🔇 השתק הקראות (Mute)</button>
+      <button class="secondary" onclick="runSleepCatchup()">⏰ התאוששות משינה</button>
+      <button class="secondary" onclick="runCycle('morning')">🌅 מחזור בוקר</button>
+      <button class="secondary" onclick="runCycle('intraday')">▶️ הפעולה הבאה</button>
+      <button class="secondary" onclick="runCycle('evening')">🌙 סיכום ערב</button>
+      <button class="secondary" onclick="runCycle('weekly')">📅 שבועי</button>
+      <button class="secondary" onclick="runCycle('monthly')">🗓 חודשי</button>
       <button class="secondary" onclick="loadOverview()">🔄 רענן</button>
     </div>
   </header>
@@ -529,6 +540,105 @@
     </div>
   </div>
 
+  <!-- Unified Spec V6 Row: Cards 12, 13, 14, 15 -->
+  <div class="grid">
+    <!-- Card 12: Unified Today Screen (1A & 1B) -->
+    <div class="card">
+      <div>
+        <div class="card-header">
+          <h2>📅 12. מסך היום המאוחד (פתיחה/בדיקה, מספור קולי #1..N, נתקעתי ובירור 11:00)</h2>
+          <button class="help-btn" onclick="openHelp('card12')" title="הסבר על קובייה 12">?</button>
+        </div>
+        <div id="v6-today-box">טוען...</div>
+      </div>
+      <div class="form-box">
+        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">+ הוסף פעילות עם שעת פתיחה ושעת בדיקה נפרדות:</div>
+        <div class="form-row">
+          <input id="v6-act-name" type="text" placeholder="שם (למשל: כתיבה חופשית על נייר)" style="flex:1;" />
+          <input id="v6-act-alias" type="text" placeholder="כינוי קולי (למשל: כתיבה חופשית)" style="width:140px;" />
+        </div>
+        <div class="form-row">
+          <label>פתיחה:</label>
+          <input id="v6-open" type="text" value="06:00" style="width:62px;" />
+          <label>מועדף:</label>
+          <input id="v6-pref" type="text" value="09:10" style="width:62px;" />
+          <label>בדיקה:</label>
+          <input id="v6-chk" type="text" value="10:00" style="width:62px;" />
+          <button onclick="createV6Activity()">צור פעילות</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 13: Voice Reporting with Mandatory Pre-Save Confirmation & Disambiguation (1C) -->
+    <div class="card">
+      <div>
+        <div class="card-header">
+          <h2>🎤 13. דיווח קולי בעברית (מספור יציב, אישור מקדים ב-POC ופתרון עמימות)</h2>
+          <button class="help-btn" onclick="openHelp('card13')" title="הסבר על קובייה 13">?</button>
+        </div>
+        <div id="v6-voice-box" style="margin-bottom:8px; color:var(--muted); font-size:0.84rem;">
+          הקלד או הקלט פקודה קולית (למשל: <code>ביצעתי משימה 1</code> או <code>סיימתי את הכתיבה החופשית</code>). ב-POC כל פקודה מציגה אישור מפורש לפני שמירה.
+        </div>
+        <div id="v6-voice-confirm-box"></div>
+      </div>
+      <div class="form-box">
+        <div class="form-row">
+          <input id="v6-voice-input" type="text" placeholder="למשל: ביצעתי משימה 1 / סיימתי כתיבה חופשית / בטל דיווח" style="flex:1;" />
+          <button onclick="startBrowserMic()" class="secondary" title="זיהוי קולי בדפדפן (he-IL)">🎤 דקלם</button>
+          <button onclick="sendV6VoiceCommand()">נתח פקודה</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 14: Multimedia (Replacing Text) & Scheduled Messages / TTS Reader (1D) -->
+    <div class="card">
+      <div>
+        <div class="card-header">
+          <h2>🎬 14. מולטימדיה (ללא חובת טקסט) וטופס הודעות והקראות מתוזמנות</h2>
+          <button class="help-btn" onclick="openHelp('card14')" title="הסבר על קובייה 14">?</button>
+        </div>
+        <div id="v6-media-msg-box">טוען...</div>
+      </div>
+      <div class="form-box">
+        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">+ צור הודעה/מדיה מתוזמנת (קובץ מדיה יכול להחליף טקסט לחלוטין):</div>
+        <div class="form-row">
+          <input id="v6-msg-name" type="text" placeholder="שם ההודעה/המדיה" style="width:130px;" />
+          <input id="v6-msg-text" type="text" placeholder="טקסט להקראה (אופציונלי אם צורפה מדיה)" style="flex:1;" />
+        </div>
+        <div class="form-row">
+          <select id="v6-media-type">
+            <option value="">ללא קובץ מדיה (טקסט/TTS בלבד)</option>
+            <option value="infographic">אינפוגרפיקה (image/png)</option>
+            <option value="video">סרטון תרגול (video/mp4)</option>
+            <option value="audio">אודיו מוכן במקום TTS (audio/mpeg)</option>
+          </select>
+          <input id="v6-msg-time" type="text" value="07:00" style="width:65px;" title="שעת תזמון" />
+          <button onclick="createV6ScheduledMessage()">שמור תזמון</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 15: Quick Inbox ('Idea' Button) & Progressive Onboarding (1E) -->
+    <div class="card">
+      <div>
+        <div class="card-header">
+          <h2>💡 15. Inbox מהיר (כפתור "רעיון") ו-Progressive Onboarding</h2>
+          <button class="help-btn" onclick="openHelp('card15')" title="הסבר על קובייה 15">?</button>
+        </div>
+        <div id="v6-onboarding-box">טוען...</div>
+        <div id="v6-inbox-box" style="margin-top:8px;"></div>
+      </div>
+      <div class="form-box">
+        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">+ קליטה מהירה ל-Inbox:</div>
+        <div class="form-row">
+          <input id="v6-inbox-input" type="text" placeholder="רשום רעיון, משימה או כלל..." style="flex:1;" />
+          <button class="warn" onclick="captureV6Inbox('idea')">💡 שמור כרעיון (ללא הפיכה למשימה)</button>
+          <button class="secondary" onclick="captureV6Inbox('auto')">סווג לתיבה</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Card 10 & 11: Decisions, Pending Approvals & Inspector -->
   <div class="grid">
     <div class="card">
@@ -643,6 +753,34 @@
         why: "כדי לאפשר לך לבדוק בדיוק למה המערכת המליצה או חסמה פעולה מסוימת.",
         how: "לחיצה על 'הסבר' ליד כל החלטה בקובייה 10 מציגה כאן: איזה אירוע הפעיל את הבדיקה, איזה חוק ניצח (rule_id, גרסה ועדיפות), אילו חוקים אחרים נשקלו ונדחו בגלל עדיפות נמוכה יותר (conflicts_resolved), ואילו נתונים בדיוק נבדקו.",
         example: "לחץ על 'הסבר' ליד החלטת daily_plan.evaluate או לחץ על 'גרסאות' ליד החוק FROG-001 בטבלת החוקים – והפירוט המלא יוצג מיד בחלונית זו."
+      },
+      card12: {
+        title: "📅 קובייה 12: מסך היום המאוחד (פרוסות 1A ו-1B באפיון המאוחד גרסה 6)",
+        what: "ניהול משימות היום עם הפרדה מלאה בין מועד פתיחה והצגה (למשל 06:00), מועד ביצוע מועדף (09:10) ומועד בדיקה (10:00 או 18:00), מספור קולי יציב (#1, #2, #3), כפתור 'נתקעתי', ומשימת הבירור היומית ב-11:00 של Self Management.",
+        why: "כדי שלא תקבל התראות מיותרות אם כבר השלמת פעילות לפני מועד הבדיקה, וכדי שהיעדר דיווח ייחשב 'אין מידע' (unknown) וייצור שאלת בירור עדינה במקום לסמן כישלון אוטומטי.",
+        how: "<ul><li><strong>State Machine כפול:</strong> מפריד בין מצב התזמון (מתוכנן, הוצג, בחלון ביצוע, הגיע מועד בדיקה, נסגר) לבין תוצאת הביצוע (אין מידע, הושלם, חלקי, לא בוצע, נדחה, חריג מאושר).</li><li><strong>אירועי ביצוע Append-Only:</strong> כל סימון או ביטול (Undo) נשמר כאירוע מקושר בטבלת <code>v6_execution_events</code> עם הגנת התנגשויות (<code>entity_version</code>) בסנכרון בין טלפון למחשב.</li><li><strong>כפתור 'נתקעתי':</strong> מציע צעד ראשון של 2 דקות או גרסת מינימום בלי לשנות את התוכנית אוטומטית.</li></ul>",
+        example: "צור פעילות 'כתיבה חופשית על נייר' עם פתיחה 06:00, מועדף 09:10 ובדיקה 10:00. לחץ על 'בדיקת כלל (18:00)' כשהסטטוס הוא 'אין מידע' – ותראה שהמערכת שואלת שאלת בירור ולא קובעת כישלון!"
+      },
+      card13: {
+        title: "🎤 קובייה 13: דיווח קולי בעברית עם אישור מקדים ופתרון עמימות (פרוסה 1C)",
+        what: "ממשק פקודות קוליות בלחיצה על מיקרופון (ללא האזנה רציפה) המזהה משימות לפי שם, כינוי או המספר הקולי היציב של היום (#1, #2, #3).",
+        why: "כדי למנוע שגיאות זיהוי קולי שישחקו את האמון שלך במערכת: ב-POC כל פקודה קולית מחייבת אישור מפורש לפני שמירה, ובמקרה של שמות דומים מציגה כפתורי בחירה בין המשימות המועמדות.",
+        how: "מנתח דטרמיניסטי ראשון בודק מספר משימה ('ביצעתי משימה 1' או 'משימה אחת') וכינויים ממילון הביטויים המקומי (<code>v6_voice_phrase_dictionary</code>). הוא שומר פקודה בסטטוס <code>pending_confirmation</code> או <code>ambiguous_requires_choice</code> עד שתלחץ על כפתור האישור.",
+        example: "הקלד או דקלם: 'ביצעתי משימה 1' ולחץ 'נתח פקודה'. תופיע תיבת אישור עם שם המשימה המדויק וכפתור 'אשר שמירה קולית ✓'. ניתן גם לומר 'בטל דיווח' כדי לבטל את הסימון האחרון."
+      },
+      card14: {
+        title: "🎬 קובייה 14: מולטימדיה כתחליף מלא לטקסט וטופס הודעות והקראות מתוזמנות (פרוסה 1D)",
+        what: "ניהול בלוקי מדיה (סרטון, אינפוגרפיקה, תמונה, אודיו מוכן, שאלה) שיכולים להחליף טקסט לחלוטין, וטופס תזמון הודעות והקראות TTS בעברית עם תצוגה מקדימה וכפתור השתקה מיידי (Global Mute).",
+        why: "אינפוגרפיקת בוקר ב-07:00, סרטון תרגול ב-09:00 או אודיו מוקלט לתרגול מנטלי ב-12:00 יעילים לעיתים הרבה יותר מעוד שורת טקסט. מנגד, כשאתה בפגישה או במצב שקט, אסור למערכת להשמיע קול אוטומטית.",
+        how: "השרת מאמת את סוג הקובץ והגודל בפועל (<code>v6_media_assets</code>) ושומר מזהה גרסת תוכן (<code>content_version_id</code>). בעת תצוגה מקדימה או הפעלה של הודעה מתוזמנת, המערכת בודקת את כפתור ההשתקה (<code>global_mute_tts</code>) ואת ה-<code>Context Mode</code>: במצב שקט או שבת, הקראת TTS נחסמת אוטומטית וההודעה מוצגת חזותית בלבד.",
+        example: "בחר 'אינפוגרפיקה (image/png)' או 'סרטון תרגול (video/mp4)' אפילו בלי להזין טקסט להקראה, קבע שעה 07:00 ולחץ 'שמור תזמון'. לחץ על 'תצוגה מקדימה / השמע' כדי לבדוק את ההתנהגות במצב רגיל מול מצב מושתק."
+      },
+      card15: {
+        title: "💡 קובייה 15: Inbox מהיר (כפתור 'רעיון') ו-Progressive Onboarding בניהול Compass (פרוסה 1E)",
+        what: "תיבת קליטה מהירה עם כפתור '💡 שמור כרעיון' ייעודי, ומנוע היכרות הדרגתית (Progressive Onboarding) שבו Compass עצמה שואלת בהדרגה שאלות זהות, ערכים, מטרות, הרגלים, אנרגיה וגבולות.",
+        why: "1) לא כל רעיון שעולה לך באמצע היום צריך להפוך למשימה שמייצרת עומס או חוב. כפתור 'רעיון' שומר אותו במאגר הרעיונות בלי טופס ובלי להפוך אותו למשימה. 2) במקום שאלון חובה ארוך ומתיש, Compass שואלת שאלה אחת בכל פעם, מאפשרת דילוג או השתקת נושא, ולעולם לא שואלת שוב מידע שכבר נענה.",
+        how: "נשמר בטבלאות <code>v6_inbox_items</code> ו-<code>v6_onboarding_questions</code>. כל תשובה מסומנת כעובדה מפורשת (<code>explicit_fact</code>) או הסקה, והשאלה הבאה נבחרת דטרמיניסטית לפי חשיבות וחסמי תשתית.",
+        example: "רשום בתיבת ה-Inbox 'אולי כדאי להוסיף תרגול נשימה לפני שיחת מכירה' ולחץ '💡 שמור כרעיון'. למעלה, ענה על שאלת ההיכרות הפתוחה או לחץ 'דלג כעת' – ותראה ש-Compass עוברת מיד לשאלה הבאה במאגר."
       }
     };
 
@@ -859,6 +997,80 @@
             </div>
           </div>
         `).join('');
+
+      // Render Unified V6 Cards (Cards 12, 13, 14, 15)
+      const v6Today = data.v6_today_screen || {};
+      const ctxMode = v6Today.context_mode || {};
+      const modeSelect = document.getElementById('ctx-mode-select');
+      if (modeSelect && ctxMode.active_mode) modeSelect.value = ctxMode.active_mode;
+      const muteBtn = document.getElementById('mute-btn');
+      if (muteBtn) {
+        muteBtn.textContent = ctxMode.global_mute_tts ? '🔇 הקראות מושתקות (בטל השתקה)' : '🔊 השתק הקראות (Global Mute)';
+        muteBtn.className = ctxMode.global_mute_tts ? 'warn' : 'secondary';
+      }
+
+      const allInst = v6Today.all_instances || [];
+      document.getElementById('v6-today-box').innerHTML = `
+        <div style="font-size:0.82rem; color:var(--muted); margin-bottom:6px;">
+          מצב הקשר: <span class="badge ok">${ctxMode.active_mode || 'normal'}</span> |
+          אזור זמן: <code>${ctxMode.timezone || 'Asia/Jerusalem'}</code> (שבוע מתחיל ב-${ctxMode.week_starts_on || 'Sunday'})
+        </div>
+        ${allInst.map(inst => `
+          <div class="item-row">
+            <div>
+              <span class="badge ok">#${inst.daily_voice_number}</span>
+              <strong>${inst.name}</strong>
+              ${inst.media_only ? '<span class="badge warn">🎬 מדיה ללא טקסט</span>' : ''}
+              <span style="font-size:0.78rem; color:var(--muted);">(${inst.open_time} → בדיקה ${inst.check_time})</span>
+              <span class="badge ${inst.execution_outcome === 'completed' ? 'ok' : (inst.execution_outcome === 'unknown' ? '' : 'warn')}">${inst.execution_outcome}</span>
+            </div>
+            <div style="display:flex; gap:4px; flex-wrap:wrap;">
+              <button class="ok" onclick="reportV6Instance('${inst.instance_id}', 'completed')">✓ בוצע</button>
+              <button class="secondary" onclick=" undoV6Instance('${inst.instance_id}')">↩ בטל</button>
+              <button class="warn" onclick="showV6Stuck('${inst.instance_id}')">נתקעתי</button>
+              <button class="secondary" onclick="checkV6Rule('${inst.instance_id}')">בדיקת כלל</button>
+            </div>
+          </div>
+        `).join('')}
+      `;
+
+      const v6Msgs = data.v6_scheduled_messages || [];
+      const v6Media = data.v6_media_assets || [];
+      document.getElementById('v6-media-msg-box').innerHTML = `
+        <div><strong>פריטי מדיה רשומים:</strong> ${v6Media.length} | <strong>הודעות והקראות מתוזמנות:</strong> ${v6Msgs.length}</div>
+        <div style="margin-top:6px;">
+          ${v6Msgs.slice(0, 4).map(m => `
+            <div class="item-row">
+              <div>
+                <strong>${m.name}</strong> (<span class="badge">${m.display_mode}</span> בשעות ${(m.schedule_times || []).join(', ')})
+              </div>
+              <button class="secondary" onclick="previewV6Message('${m.message_id}')">▶ תצוגה מקדימה / השמע</button>
+            </div>
+          `).join('') || '<div style="color:var(--muted); font-size:0.83rem;">אין הודעות מתוזמנות עדיין – צור הודעה או מדיה למטה.</div>'}
+        </div>
+      `;
+
+      const v6Onb = data.v6_onboarding || {};
+      const nextQ = v6Onb.next_question;
+      document.getElementById('v6-onboarding-box').innerHTML = nextQ ? `
+        <div style="background:#0b1120; padding:10px; border-radius:8px; border:1px solid var(--border);">
+          <div style="font-size:0.78rem; color:var(--accent);">שאלת היכרות הדרגתית (${v6Onb.answered_count}/${v6Onb.total_questions} נענו):</div>
+          <div style="font-weight:600; margin:4px 0;">${nextQ.question_he}</div>
+          <div class="form-row" style="margin-top:6px; margin-bottom:0;">
+            <input id="v6-onb-ans" type="text" placeholder="תשובתך..." style="flex:1;" />
+            <button class="ok" onclick="answerV6Onboarding('${nextQ.question_id}', 'answer')">שמור תשובה</button>
+            <button class="secondary" onclick="answerV6Onboarding('${nextQ.question_id}', 'skip')">דלג כעת</button>
+          </div>
+        </div>
+      ` : '<div class="badge ok">כל שאלות ההיכרות הפתוחות נענו!</div>';
+
+      const v6Inbox = data.v6_inbox || [];
+      document.getElementById('v6-inbox-box').innerHTML = v6Inbox.slice(0, 3).map(item => `
+        <div class="item-row">
+          <div><span class="badge ${item.item_kind === 'idea' ? 'warn' : ''}">${item.item_kind === 'idea' ? '💡 רעיון' : item.item_kind}</span> ${item.raw_text}</div>
+          <span style="font-size:0.76rem; color:var(--muted);">${item.status}</span>
+        </div>
+      `).join('');
     }
 
     async function savePolicyBounds() {
@@ -1179,6 +1391,264 @@
       });
       const data = await res.json();
       document.getElementById('inspector-box').textContent = JSON.stringify(data, null, 2);
+      await loadOverview();
+    }
+
+    // --- Unified Spec V6 Frontend Handlers ---
+
+    async function createV6Activity() {
+      const name = document.getElementById('v6-act-name').value.trim();
+      if (!name) return alert('נא להזין שם לפעילות');
+      const alias = document.getElementById('v6-act-alias').value.trim();
+      const res = await fetch('/api/v6/activities', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          user_id: 'moshe',
+          name,
+          aliases: alias ? [alias] : [],
+          open_time: document.getElementById('v6-open').value || '06:00',
+          preferred_time: document.getElementById('v6-pref').value || '09:10',
+          check_time: document.getElementById('v6-chk').value || '10:00'
+        })
+      });
+      const data = await res.json();
+      document.getElementById('v6-act-name').value = '';
+      document.getElementById('v6-act-alias').value = '';
+      showOutput('📅 פעילות V6 חדשה נוצרה עם מופע ומספר קולי יציב:', data);
+      await loadOverview();
+    }
+
+    async function reportV6Instance(instanceId, outcome) {
+      const res = await fetch(`/api/v6/instances/${encodeURIComponent(instanceId)}/report`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', outcome, source: 'control_center_checkbox'})
+      });
+      const data = await res.json();
+      showOutput('📅 דיווח ביצוע מופע V6 (Append-Only Event):', data);
+      await loadOverview();
+    }
+
+    async function undoV6Instance(instanceId) {
+      const res = await fetch(`/api/v6/instances/${encodeURIComponent(instanceId)}/undo?user_id=moshe`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      showOutput('↩ ביטול דיווח אחרון (Undo Event):', data);
+      await loadOverview();
+    }
+
+    async function showV6Stuck(instanceId) {
+      const res = await fetch(`/api/v6/instances/${encodeURIComponent(instanceId)}/stuck?user_id=moshe`);
+      const data = await res.json();
+      showOutput('🛟 סיוע "נתקעתי" (צעד ראשון של 2 דקות / גרסת מינימום ללא שינוי תוכנית אוטומטי):', data);
+    }
+
+    async function checkV6Rule(instanceId) {
+      const res = await fetch(`/api/v6/instances/${encodeURIComponent(instanceId)}/check-rule?user_id=moshe&check_time=18:00`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      showOutput('⚖️ בדיקת כלל במועד הבדיקה (בוצע -> ללא התראה | אין מידע -> שאלת בירור ולא כישלון | לא בוצע -> הצעת השלמה):', data);
+    }
+
+    async function sendV6VoiceCommand() {
+      const transcript = document.getElementById('v6-voice-input').value.trim();
+      if (!transcript) return alert('נא להזין או לדקלם פקודה קולית');
+      const res = await fetch('/api/v6/voice/command', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', transcript, source_device: 'web_control_center'})
+      });
+      const data = await res.json();
+      showOutput('🎤 פענוח פקודה קולית בעברית:', data);
+
+      const box = document.getElementById('v6-voice-confirm-box');
+      if (data.status === 'pending_confirmation' && data.matched_instance) {
+        box.innerHTML = `
+          <div style="background:rgba(34,197,94,0.15); border:1px solid var(--ok); padding:10px; border-radius:8px; margin-top:6px;">
+            <div><strong>אישור קולי מקדים (חובה ב-POC):</strong> ${data.message_he}</div>
+            <div style="margin-top:6px; display:flex; gap:6px;">
+              <button class="ok" onclick="confirmV6Voice('${data.command_id}', '${data.matched_instance.instance_id}')">אשר שמירה קולית ✓</button>
+              <button class="secondary" onclick="document.getElementById('v6-voice-confirm-box').innerHTML=''">ביטול ✗</button>
+            </div>
+          </div>
+        `;
+      } else if (data.status === 'ambiguous_requires_choice') {
+        box.innerHTML = `
+          <div style="background:rgba(245,158,11,0.15); border:1px solid var(--warn); padding:10px; border-radius:8px; margin-top:6px;">
+            <div><strong>${data.message_he}</strong></div>
+            <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+              ${(data.candidates || []).map(c => `
+                <button class="ok" onclick="confirmV6Voice('${data.command_id}', '${c.instance_id}')">בחר #${c.daily_voice_number}: ${c.name}</button>
+              `).join('')}
+              <button class="secondary" onclick="document.getElementById('v6-voice-confirm-box').innerHTML=''">ביטול ✗</button>
+            </div>
+          </div>
+        `;
+      } else {
+        box.innerHTML = `<div style="margin-top:6px; color:#fbbf24;">${data.message_he || ''}</div>`;
+      }
+      await loadOverview();
+    }
+
+    async function confirmV6Voice(commandId, selectedInstanceId) {
+      const res = await fetch(`/api/v6/voice/confirm/${encodeURIComponent(commandId)}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', selected_instance_id: selectedInstanceId, learn_phrase_on_confirm: true})
+      });
+      const data = await res.json();
+      document.getElementById('v6-voice-confirm-box').innerHTML = `
+        <div style="background:rgba(34,197,94,0.15); padding:8px; border-radius:6px; margin-top:6px;">
+          ✅ ${data.visual_confirmation_he}
+        </div>
+      `;
+      document.getElementById('v6-voice-input').value = '';
+      showOutput('✅ פקודה קולית אושרה ונשמרה:', data);
+      await loadOverview();
+    }
+
+    function startBrowserMic() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert('הדפדפן אינו תומך ב-Web Speech API הישיר; ניתן להקליד את הפקודה הקולית בתיבה.');
+        return;
+      }
+      const rec = new SpeechRecognition();
+      rec.lang = 'he-IL';
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      rec.onresult = (event) => {
+        const text = event.results[0][0].transcript;
+        document.getElementById('v6-voice-input').value = text;
+        sendV6VoiceCommand();
+      };
+      rec.start();
+    }
+
+    async function createV6ScheduledMessage() {
+      const name = document.getElementById('v6-msg-name').value.trim() || 'הודעה/מדיה מתוזמנת';
+      const text_content = document.getElementById('v6-msg-text').value.trim() || null;
+      const mediaType = document.getElementById('v6-media-type').value;
+      const schedTime = document.getElementById('v6-msg-time').value.trim() || '07:00';
+
+      let media_id = null;
+      let media_blocks = [];
+      if (mediaType) {
+        const mimeMap = {infographic: 'image/png', video: 'video/mp4', audio: 'audio/mpeg'};
+        const extMap = {infographic: 'png', video: 'mp4', audio: 'mp3'};
+        const mRes = await fetch('/api/v6/media', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            user_id: 'moshe',
+            title: name,
+            media_type: mediaType,
+            mime_type: mimeMap[mediaType],
+            file_path_or_url: `/media/${mediaType}_${Date.now()}.${extMap[mediaType]}`,
+            size_bytes: 65536
+          })
+        });
+        const mData = await mRes.json();
+        if (mData.media) {
+          media_id = mData.media.media_id;
+          media_blocks = [{block_type: mediaType, media_id, title: name}];
+        }
+      }
+
+      const res = await fetch('/api/v6/scheduled-messages', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          user_id: 'moshe',
+          name,
+          text_content,
+          media_id,
+          media_blocks,
+          schedule_times: [schedTime],
+          display_mode: mediaType && !text_content ? 'media' : (mediaType ? 'combined' : 'tts'),
+          auto_tts_allowed: true
+        })
+      });
+      const data = await res.json();
+      document.getElementById('v6-msg-name').value = '';
+      document.getElementById('v6-msg-text').value = '';
+      showOutput('🎬 הודעה/מדיה מתוזמנת נשמרה:', data);
+      await loadOverview();
+    }
+
+    async function previewV6Message(messageId) {
+      const res = await fetch(`/api/v6/scheduled-messages/${encodeURIComponent(messageId)}/preview?user_id=moshe`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      showOutput('▶ תצוגה מקדימה והאזנה להודעה מתוזמנת:', data);
+      if (!data.tts_suppressed_by_mute_or_quiet_mode && data.scheduled_message?.text_content && 'speechSynthesis' in window) {
+        const utter = new SpeechSynthesisUtterance(data.scheduled_message.text_content);
+        utter.lang = 'he-IL';
+        window.speechSynthesis.speak(utter);
+      }
+    }
+
+    async function changeContextMode(mode) {
+      const res = await fetch('/api/v6/context-mode', {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', active_mode: mode})
+      });
+      const data = await res.json();
+      showOutput(`🌐 מצב הקשר (Context Mode) הוחלף ל-${mode}:`, data);
+      await loadOverview();
+    }
+
+    async function toggleGlobalMute() {
+      const curMute = currentState?.v6_today_screen?.context_mode?.global_mute_tts || false;
+      if (!curMute && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      const res = await fetch('/api/v6/context-mode', {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', global_mute_tts: !curMute})
+      });
+      const data = await res.json();
+      showOutput(!curMute ? '🔇 כל ההקראות הושתקו מיידית (Global Mute ON):' : '🔊 השתקת הקראות בוטלה:', data);
+      await loadOverview();
+    }
+
+    async function runSleepCatchup() {
+      const res = await fetch('/api/v6/catch-up?user_id=moshe&wake_time=06:15', {method: 'POST'});
+      const data = await res.json();
+      showOutput('⏰ התאוששות לאחר שינת שרת (00:00–06:00) ללא התראות כפולות וללא כישלון מלאכותי:', data);
+      await loadOverview();
+    }
+
+    async function captureV6Inbox(itemKind) {
+      const raw_text = document.getElementById('v6-inbox-input').value.trim();
+      if (!raw_text) return alert('נא להזין טקסט ל-Inbox');
+      const res = await fetch('/api/v6/inbox', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', raw_text, item_kind: itemKind})
+      });
+      const data = await res.json();
+      document.getElementById('v6-inbox-input').value = '';
+      showOutput('💡 פריט נשמר ב-Inbox (ללא הפיכה אוטומטית למשימה):', data);
+      await loadOverview();
+    }
+
+    async function answerV6Onboarding(questionId, action) {
+      const answer_text = document.getElementById('v6-onb-ans')?.value.trim() || null;
+      if (action === 'answer' && !answer_text) return alert('נא להזין תשובה או ללחוץ על דלג כעת');
+      const res = await fetch(`/api/v6/onboarding/${encodeURIComponent(questionId)}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', action, answer_text})
+      });
+      const data = await res.json();
+      showOutput('🧭 עדכון Progressive Onboarding בניהול Compass:', data);
       await loadOverview();
     }
 

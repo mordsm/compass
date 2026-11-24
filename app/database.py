@@ -626,6 +626,201 @@ def init_db() -> None:
                 silent_wins_recorded integer not null,
                 notes text
             );
+
+            create table if not exists v6_activity_templates (
+                template_id text primary key,
+                user_id text not null,
+                name text not null,
+                aliases_json text not null,
+                description text not null,
+                open_time text not null,
+                preferred_time text not null,
+                window_end_time text not null,
+                check_time text not null,
+                frequency text not null,
+                content_blocks_json text not null,
+                media_only integer not null,
+                completion_condition text not null,
+                evidence_type text not null,
+                estimated_minutes integer not null,
+                minimum_viable_version text not null,
+                importance integer not null,
+                impact integer not null,
+                difficulty integer not null,
+                energy_requirement integer not null,
+                exception_action text not null,
+                ttl_policy text not null,
+                goal_ids_json text not null,
+                rule_id text,
+                is_system_inquiry integer not null,
+                max_inquiry_repeats integer not null,
+                inquiry_repeats_count integer not null,
+                status text not null,
+                created_at text not null,
+                updated_at text not null
+            );
+
+            create table if not exists v6_activity_instances (
+                instance_id text primary key,
+                template_id text not null,
+                user_id text not null,
+                instance_date text not null,
+                daily_voice_number integer not null,
+                name text not null,
+                aliases_json text not null,
+                open_time text not null,
+                preferred_time text not null,
+                window_end_time text not null,
+                check_time text not null,
+                schedule_state text not null,
+                execution_outcome text not null,
+                partial_value real,
+                partial_unit text,
+                partial_target real,
+                partial_note text,
+                used_minimum_version integer not null,
+                alternative_performed text,
+                deferred_until text,
+                defer_count integer not null,
+                content_blocks_json text not null,
+                content_version_id text not null,
+                media_only integer not null,
+                ttl_policy text not null,
+                reported_execution_at text,
+                received_at text,
+                report_source text,
+                entity_version integer not null,
+                created_at text not null,
+                updated_at text not null,
+                unique(user_id, instance_date, daily_voice_number)
+            );
+
+            create table if not exists v6_execution_events (
+                event_id text primary key,
+                user_id text not null,
+                event_type text not null,
+                source text not null,
+                entity_type text not null,
+                entity_id text not null,
+                linked_event_id text,
+                occurred_at text not null,
+                received_at text not null,
+                outcome text not null,
+                payload_json text not null,
+                action_idempotency_key text not null unique
+            );
+
+            create table if not exists v6_media_assets (
+                media_id text primary key,
+                user_id text not null,
+                title text not null,
+                media_type text not null,
+                mime_type text not null,
+                file_path_or_url text not null,
+                size_bytes integer not null,
+                duration_seconds integer,
+                alt_text_or_transcript text,
+                language text not null,
+                content_version_id text not null,
+                offline_cached integer not null,
+                ttl_days integer,
+                created_at text not null
+            );
+
+            create table if not exists v6_scheduled_messages (
+                message_id text primary key,
+                user_id text not null,
+                name text not null,
+                text_content text,
+                media_id text,
+                media_blocks_json text not null,
+                start_date text not null,
+                schedule_times_json text not null,
+                recurrence text not null,
+                display_mode text not null,
+                require_response integer not null,
+                auto_tts_allowed integer not null,
+                tts_speed real not null,
+                tts_voice text not null,
+                importance integer not null,
+                status text not null,
+                last_triggered_at text,
+                created_at text not null,
+                updated_at text not null
+            );
+
+            create table if not exists v6_voice_phrase_dictionary (
+                phrase_id text primary key,
+                user_id text not null,
+                phrase text not null,
+                target_type text not null,
+                target_id text not null,
+                target_name text not null,
+                approved_by_user integer not null,
+                created_at text not null
+            );
+
+            create table if not exists v6_pending_voice_commands (
+                command_id text primary key,
+                user_id text not null,
+                raw_transcript text not null,
+                detected_intent text not null,
+                status text not null,
+                matched_instance_id text,
+                candidate_instances_json text not null,
+                proposed_outcome text not null,
+                source_device text not null,
+                created_at text not null,
+                confirmed_at text
+            );
+
+            create table if not exists v6_context_mode_state (
+                user_id text primary key,
+                active_mode text not null,
+                global_mute_tts integer not null,
+                quiet_hours_start text not null,
+                quiet_hours_end text not null,
+                max_concurrent_prompts integer not null,
+                active_prompts_count integer not null,
+                timezone text not null,
+                week_starts_on text not null,
+                server_sleep_start text not null,
+                server_sleep_end text not null,
+                last_active_heartbeat_at text not null,
+                last_catchup_at text,
+                updated_at text not null
+            );
+
+            create table if not exists v6_inbox_items (
+                item_id text primary key,
+                user_id text not null,
+                item_kind text not null,
+                raw_text text not null,
+                source text not null,
+                suggested_classification text not null,
+                suggested_goal_id text,
+                suggested_rule_id text,
+                status text not null,
+                created_at text not null,
+                updated_at text not null
+            );
+
+            create table if not exists v6_onboarding_questions (
+                question_id text primary key,
+                user_id text not null,
+                category text not null,
+                question_he text not null,
+                importance integer not null,
+                is_blocking_infra integer not null,
+                status text not null,
+                answer_text text,
+                answer_fact_or_inference text,
+                topic_muted integer not null,
+                asked_count integer not null,
+                last_asked_at text,
+                answered_at text,
+                updated_at text not null
+            );
             """
         )
 

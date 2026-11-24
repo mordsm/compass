@@ -15,6 +15,7 @@ from app.services.routines_service import RoutinesAndExecutionService
 from app.services.rules_engine import RulesEngineAdapter
 from app.services.system_status import local_system_status
 from app.services.task_commander import TaskCommanderAdapter
+from app.services.unified_v6_service import UnifiedV6Service
 
 router = APIRouter(prefix="/api/control-center", tags=["control-center"])
 
@@ -161,6 +162,12 @@ def get_control_center_overview(user_id: str = Query(default="moshe")) -> dict[s
     active_challenges = growth_svc.list_challenges(user_id=user_id, status="active")
     playful_state = growth_svc.get_playful_state(user_id=user_id)
     mental_assessment = MentalSkillsService().generate_monthly_mental_assessment(user_id=user_id)
+    v6_svc = UnifiedV6Service()
+    v6_today = v6_svc.get_today_screen(user_id=user_id)
+    v6_messages = v6_svc.list_scheduled_messages(user_id=user_id)
+    v6_media = v6_svc.list_media_assets(user_id=user_id)
+    v6_inbox = v6_svc.list_inbox_items(user_id=user_id)
+    v6_onboarding = v6_svc.get_next_onboarding_question(user_id=user_id)
 
     try:
         services_status = local_system_status()
@@ -193,6 +200,11 @@ def get_control_center_overview(user_id: str = Query(default="moshe")) -> dict[s
         "weekly_progress": weekly_progress,
         "ai_usage": ai_usage,
         "connected_services": services_status,
+        "v6_today_screen": v6_today,
+        "v6_scheduled_messages": v6_messages,
+        "v6_media_assets": v6_media,
+        "v6_inbox": v6_inbox,
+        "v6_onboarding": v6_onboarding,
     }
 
 

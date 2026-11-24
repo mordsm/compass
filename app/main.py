@@ -27,6 +27,7 @@ from app.routers import (
     task_commander,
     tasks,
     training,
+    unified_v6,
 )
 
 
@@ -58,6 +59,7 @@ def create_app() -> FastAPI:
     app.include_router(progress.router)
     app.include_router(rules.router)
     app.include_router(control_center.router)
+    app.include_router(unified_v6.router)
     app.include_router(agents.router)
     app.include_router(approvals.router)
     app.include_router(ecosystem.router)
