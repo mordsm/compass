@@ -209,9 +209,10 @@ class UnifiedV6Service:
         check_time = str(payload.get("check_time") or "18:00")
 
         with db() as conn:
+            conn.execute("delete from v6_activity_templates where template_id = ?", (template_id,))
             conn.execute(
                 """
-                insert or replace into v6_activity_templates
+                insert into v6_activity_templates
                 (template_id, user_id, name, aliases_json, description, open_time,
                  preferred_time, window_end_time, check_time, frequency, content_blocks_json,
                  media_only, completion_condition, evidence_type, estimated_minutes,
@@ -2071,9 +2072,10 @@ class UnifiedV6Service:
             created_instance_id = act["today_instance"]["instance_id"]
 
         with db() as conn:
+            conn.execute("delete from v6_morning_intents where intent_id = ?", (intent_id,))
             conn.execute(
                 """
-                insert or replace into v6_morning_intents
+                insert into v6_morning_intents
                 (intent_id, user_id, intent_date, meaningful_win_text, expected_blocker_text,
                  linked_goal_slug, created_instance_id, created_at)
                 values (?, ?, ?, ?, ?, ?, ?, ?)
