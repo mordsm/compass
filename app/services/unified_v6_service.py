@@ -583,7 +583,7 @@ class UnifiedV6Service:
 
             growth_svc = GrowthChallengesAndPlayService()
             for slug in tpl.get("goal_ids") or []:
-                growth_svc.record_domain_activity(user_id=user_id, domain_slug=str(slug), occurred_at=now)
+                growth_svc.record_domain_activity(user_id=user_id, slug=str(slug), occurred_at=now)
 
         updated_inst = self.get_instance(instance_id)
         friction_detected = updated_inst["defer_count"] >= 3

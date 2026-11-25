@@ -706,7 +706,7 @@ class MentalSkillsService:
 
         from app.services.growth_service import GrowthChallengesAndPlayService
 
-        GrowthChallengesAndPlayService().record_domain_activity(user_id=user_id, domain_slug="mental", occurred_at=now)
+        GrowthChallengesAndPlayService().record_domain_activity(user_id=user_id, slug="mental", occurred_at=now)
 
         saved = self.get_mental_event(event_id)
         res = {
