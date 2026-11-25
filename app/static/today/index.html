@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="manifest" href="/control-center/manifest.webmanifest" />
+  <link rel="icon" href="/control-center/icon.svg" type="image/svg+xml" />
+  <title>Compass – מסך היום (מצב מבצע)</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 18px;
+      max-width: 960px;
+      margin-inline: auto;
+      line-height: 1.55;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 14px;
+      margin-bottom: 18px;
+    }
+    h1 { margin: 0; font-size: 1.45rem; color: var(--accent); }
+    h2 { margin: 0 0 10px 0; font-size: 1.1rem; color: #e2e8f0; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: #334155;
+    }
+    .badge.ok { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+    .badge.warn { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    button {
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 13px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.86rem;
+    }
+    button.secondary { background: #334155; color: var(--text); }
+    button.ok { background: var(--ok); color: #052e16; }
+    button.warn { background: var(--warn); color: #451a03; }
+    input[type="text"] {
+      background: #0b1120;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    .task-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>🎯 Compass – מסך היום הנקי (מצב מבצע)</h1>
+      <div style="color:var(--muted); font-size:0.88rem;">
+        תצוגת ביצוע ממוקדת לטלפון ולמחשב: עכשיו, בהמשך, דורש בירור והושלם — ללא עומס הגדרות
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button id="mute-btn" class="secondary" onclick="toggleMute()">🔊 השתק הקראות</button>
+      <a href="/control-center/" style="text-decoration:none;"><button class="secondary">🧭 מרכז הבקרה המלא (מתכנן / 18 קוביות)</button></a>
+    </div>
+  </header>
+
+  <!-- 1. Focused Next Action + Morning Intent -->
+  <div class="card" style="border-color: var(--accent);">
+    <h2>▶️ הפעולה הבאה שלך עכשיו + כוונת הבוקר</h2>
+    <div id="next-action-box">טוען...</div>
+  </div>
+
+  <!-- 2. Voice & Quick Command Bar -->
+  <div class="card">
+    <h2>🎤 דיווח קולי מהיר (לפי שם או מספר משימה #1..N)</h2>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <input id="voice-text" type="text" placeholder="אמור או הקלד: ביצעתי משימה 1 / סיימתי כתיבה חופשית / ניצחון שקט..." style="flex:1;" />
+      <button class="ok" onclick="startMic()">🎤 דקלם בקול</button>
+      <button onclick="submitVoice()">שלח</button>
+    </div>
+    <div id="voice-confirm-area" style="margin-top:8px;"></div>
+  </div>
+
+  <!-- 3. The 4 Today Sections (Section 17 of Unified Spec) -->
+  <div class="card">
+    <h2>🟢 עכשיו בחלון ביצוע (Now)</h2>
+    <div id="sec-now">טוען...</div>
+  </div>
+
+  <div class="card">
+    <h2>🟡 דורש בירור או השלמה (Needs Clarification / Completion)</h2>
+    <div id="sec-clarify">טוען...</div>
+  </div>
+
+  <div class="card">
+    <h2>⏳ בהמשך היום (Later)</h2>
+    <div id="sec-later">טוען...</div>
+  </div>
+
+  <div class="card">
+    <h2>✅ הושלם היום (Completed)</h2>
+    <div id="sec-done">טוען...</div>
+  </div>
+
+  <!-- 4. One-Click Attention & Stuck Output -->
+  <div class="card">
+    <h2>👁️ דיווח קשב בלחיצה אחת וסיוע "נתקעתי"</h2>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+      <button class="ok" onclick="reportAttn('worked')">💻 עבדתי</button>
+      <button class="secondary" onclick="reportAttn('browsed')">🌐 גלשתי</button>
+      <button class="secondary" onclick="reportAttn('break')">☕ הפסקה</button>
+    </div>
+    <div id="status-banner" style="font-size:0.88rem; color:var(--accent);"></div>
+  </div>
+
+  <script>
+    let todayState = null;
+
+    async function loadToday() {
+      const [todayRes, nextRes, intentRes] = await Promise.all([
+        fetch('/api/v6/today-screen?user_id=moshe'),
+        fetch('/api/routines/executor/next-action?user_id=moshe'),
+        fetch('/api/v6/morning-intent?user_id=moshe')
+      ]);
+      todayState = await todayRes.json();
+      const nextData = await nextRes.json();
+      const intentData = await intentRes.json();
+
+      const muteBtn = document.getElementById('mute-btn');
+      const isMuted = todayState.context_mode?.global_mute_tts;
+      muteBtn.textContent = isMuted ? '🔇 הקראות מושתקות (בטל)' : '🔊 השתק הקראות';
+      muteBtn.className = isMuted ? 'warn' : 'secondary';
+
+      const na = nextData.next_action || {};
+      const prep = nextData.preparation_protocol;
+      document.getElementById('next-action-box').innerHTML = `
+        <div style="font-size:1.1rem; font-weight:700; margin-bottom:4px;">${na.title || 'אין פעולה דחופה כרגע'} (${na.minutes || 5} דק׳)</div>
+        <div style="color:var(--muted); margin-bottom:6px;">${na.instruction_he || ''}</div>
+        ${intentData.has_intent ? `<div><strong>🎯 ניצחון הבוקר שלך:</strong> <span class="badge ok">${intentData.intent.meaningful_win_text}</span></div>` : ''}
+        ${prep ? `<div style="margin-top:8px; padding:8px; background:#0b1120; border-radius:8px; font-size:0.84rem;">
+          🧘 <strong>פרוטוקול הכנה להפחתת התנגדות (${prep.breathing_seconds} שנ׳):</strong> עצור לרגע -> זהו תחושה בגוף -> נשום ברוגע -> התמקד בצעד הראשון בלבד.
+        </div>` : ''}
+      `;
+
+      renderList('sec-now', todayState.sections?.now || []);
+      renderList('sec-clarify', todayState.sections?.needs_clarification_or_completion || []);
+      renderList('sec-later', todayState.sections?.later || []);
+      renderList('sec-done', todayState.sections?.completed || []);
+    }
+
+    function renderList(elId, items) {
+      const el = document.getElementById(elId);
+      if (!items.length) {
+        el.innerHTML = '<div style="color:var(--muted); font-size:0.86rem;">אין פריטים בקטגוריה זו כרגע.</div>';
+        return;
+      }
+      el.innerHTML = items.map(inst => `
+        <div class="task-row">
+          <div>
+            <input type="checkbox" ${inst.execution_outcome === 'completed' ? 'checked' : ''}
+              onchange="toggleCheck('${inst.instance_id}', this.checked)"
+              style="transform:scale(1.3); margin-left:8px; cursor:pointer;" />
+            <span class="badge ok">#${inst.daily_voice_number}</span>
+            <strong>${inst.name}</strong>
+            <span style="color:var(--muted); font-size:0.82rem;">(חלון: ${inst.preferred_time}–${inst.window_end_time || inst.check_time})</span>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="warn" onclick="stuckHelp('${inst.instance_id}')">נתקעתי</button>
+            <button class="secondary" onclick="undoTask('${inst.instance_id}')">↩ בטל</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function toggleCheck(instanceId, checked) {
+      await fetch(`/api/v6/instances/${encodeURIComponent(instanceId)}/report`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', outcome: checked ? 'completed' : 'unknown', source: 'today_screen_checkbox'})
+      });
+      await loadToday();
+    }
+
+    async function undoTask(instanceId) {
+      await fetch(`/api/v6/instances/${encodeURIComponent(instanceId)}/undo?user_id=moshe`, {method: 'POST'});
+      await loadToday();
+    }
+
+    async function stuckHelp(instanceId) {
+      const res = await fetch(`/api/v6/instances/${encodeURIComponent(instanceId)}/stuck?user_id=moshe`);
+      const data = await res.json();
+      const tips = (data.suggestions || []).map(s => `• ${s.title_he}: ${s.description_he}`).join('\n');
+      document.getElementById('status-banner').innerText = `🛟 סיוע לפעולה '${data.name}':\n${tips}`;
+    }
+
+    async function submitVoice() {
+      const text = document.getElementById('voice-text').value.trim();
+      if (!text) return;
+      const res = await fetch('/api/v6/voice/command', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', transcript: text, source_device: 'today_screen_voice'})
+      });
+      const data = await res.json();
+      const area = document.getElementById('voice-confirm-area');
+      if (data.status === 'pending_confirmation' && data.matched_instance) {
+        area.innerHTML = `
+          <div style="background:rgba(34,197,94,0.15); border:1px solid var(--ok); padding:10px; border-radius:8px;">
+            <div>${data.message_he}</div>
+            <button class="ok" style="margin-top:6px;" onclick="confirmVoice('${data.command_id}', '${data.matched_instance.instance_id}')">אשר שמירה קולית ✓</button>
+          </div>
+        `;
+      } else if (data.status === 'ambiguous_requires_choice') {
+        area.innerHTML = `
+          <div style="background:rgba(245,158,11,0.15); border:1px solid var(--warn); padding:10px; border-radius:8px;">
+            <div>${data.message_he}</div>
+            <div style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;">
+              ${(data.candidates || []).map(c => `<button class="ok" onclick="confirmVoice('${data.command_id}', '${c.instance_id}')">בחר #${c.daily_voice_number}: ${c.name}</button>`).join('')}
+            </div>
+          </div>
+        `;
+      } else {
+        area.innerHTML = `<div style="color:#fbbf24;">${data.message_he || ''}</div>`;
+      }
+    }
+
+    async function confirmVoice(cmdId, instId) {
+      const res = await fetch(`/api/v6/voice/confirm/${encodeURIComponent(cmdId)}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', selected_instance_id: instId, learn_phrase_on_confirm: true})
+      });
+      const data = await res.json();
+      document.getElementById('voice-confirm-area').innerHTML = `<div style="color:#4ade80;">✅ ${data.visual_confirmation_he}</div>`;
+      document.getElementById('voice-text').value = '';
+      await loadToday();
+    }
+
+    function startMic() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) return alert('הדפדפן אינו תומך ב-Web Speech API הישיר; ניתן להקליד בתיבה.');
+      const rec = new SpeechRecognition();
+      rec.lang = 'he-IL';
+      rec.onresult = (e) => {
+        document.getElementById('voice-text').value = e.results[0][0].transcript;
+        submitVoice();
+      };
+      rec.start();
+    }
+
+    async function toggleMute() {
+      const cur = todayState?.context_mode?.global_mute_tts || false;
+      await fetch('/api/v6/context-mode', {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', global_mute_tts: !cur})
+      });
+      await loadToday();
+    }
+
+    async function reportAttn(category) {
+      const res = await fetch('/api/v6/attention/report', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', category})
+      });
+      const data = await res.json();
+      document.getElementById('status-banner').innerText = data.success ? `נרשם דיווח קשב: ${category}` : data.message_he;
+    }
+
+    loadToday();
+  </script>
+</body>
+</html>

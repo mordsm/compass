@@ -240,6 +240,7 @@
       </div>
     </div>
     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <a href="/today/" style="text-decoration:none;"><button class="ok">🎯 מסך היום הנקי (מצב מבצע / טלפון)</button></a>
       <span id="role-badge" class="badge ok">תפקיד: מתכנן (Planner)</span>
       <button onclick="toggleRole()">החלף מתכנן / מבצע</button>
       <select id="ctx-mode-select" onchange="changeContextMode(this.value)" title="מצב הקשר (Context Mode)">
@@ -446,6 +447,7 @@
         </div>
         <div style="display:flex; gap:8px; margin-bottom:10px;">
           <input id="quick-input" type="text" placeholder="לדוגמה: ניצחון שקט: עצרתי לפני תגובה / מה הפעולה הבאה" style="flex:1;" />
+          <button class="secondary" onclick="startQuickCaptureMic()" title="הפעל מיקרופון לקליטה מהירה בעברית (he-IL)">🎤 דבר</button>
           <button onclick="sendQuickCapture()">שלח</button>
         </div>
         <div id="ai-box">טוען...</div>
@@ -565,11 +567,13 @@
         </div>
         <div class="form-row">
           <label>פתיחה:</label>
-          <input id="v6-open" type="text" value="06:00" style="width:62px;" />
-          <label>מועדף:</label>
-          <input id="v6-pref" type="text" value="09:10" style="width:62px;" />
+          <input id="v6-open" type="text" value="06:00" style="width:58px;" title="מתי המשימה נפתחת לתצוגה" />
+          <label>משעה (מועדף):</label>
+          <input id="v6-pref" type="text" value="09:10" style="width:58px;" title="שעת התחלה מועדפת" />
+          <label>עד שעה (סיום חלון):</label>
+          <input id="v6-win-end" type="text" value="10:00" style="width:58px;" title="שעת סיום חלון הביצוע" />
           <label>בדיקה:</label>
-          <input id="v6-chk" type="text" value="10:00" style="width:62px;" />
+          <input id="v6-chk" type="text" value="10:00" style="width:58px;" title="שעת בדיקת הכלל" />
           <button onclick="createV6Activity()">צור פעילות</button>
         </div>
       </div>
@@ -1124,7 +1128,7 @@
               <span class="badge ok">#${inst.daily_voice_number}</span>
               <strong>${inst.name}</strong>
               ${inst.media_only ? '<span class="badge warn">🎬 מדיה ללא טקסט</span>' : ''}
-              <span style="font-size:0.78rem; color:var(--muted);">(${inst.open_time} → בדיקה ${inst.check_time})</span>
+              <span style="font-size:0.78rem; color:var(--muted);">(חלון: ${inst.preferred_time} עד ${inst.window_end_time || inst.check_time} | פתיחה ${inst.open_time} | בדיקה ${inst.check_time})</span>
               <span class="badge ${inst.execution_outcome === 'completed' ? 'ok' : (inst.execution_outcome === 'unknown' ? '' : 'warn')}">${inst.execution_outcome}</span>
             </div>
             <div style="display:flex; gap:4px; flex-wrap:wrap;">
@@ -1587,6 +1591,7 @@
           aliases: alias ? [alias] : [],
           open_time: document.getElementById('v6-open').value || '06:00',
           preferred_time: document.getElementById('v6-pref').value || '09:10',
+          window_end_time: document.getElementById('v6-win-end')?.value || document.getElementById('v6-chk').value || '10:00',
           check_time: document.getElementById('v6-chk').value || '10:00'
         })
       });
@@ -1702,6 +1707,24 @@
         const text = event.results[0][0].transcript;
         document.getElementById('v6-voice-input').value = text;
         sendV6VoiceCommand();
+      };
+      rec.start();
+    }
+
+    function startQuickCaptureMic() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert('הדפדפן אינו תומך ב-Web Speech API הישיר; ניתן להקליד את הדיווח בתיבה.');
+        return;
+      }
+      const rec = new SpeechRecognition();
+      rec.lang = 'he-IL';
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      rec.onresult = (event) => {
+        const text = event.results[0][0].transcript;
+        document.getElementById('quick-input').value = text;
+        sendQuickCapture();
       };
       rec.start();
     }

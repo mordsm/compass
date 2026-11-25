@@ -67,6 +67,7 @@ def create_app() -> FastAPI:
     app.mount("/familybiz", StaticFiles(directory="app/static/familybiz", html=True), name="familybiz")
     app.mount("/ecosystem-hub", StaticFiles(directory="app/static/ecosystem-hub", html=True), name="ecosystem-hub")
     app.mount("/control-center", StaticFiles(directory="app/static/control-center", html=True), name="control-center")
+    app.mount("/today", StaticFiles(directory="app/static/today", html=True), name="today")
 
     @app.get("/familybiz-app", include_in_schema=False)
     def familybiz_app() -> RedirectResponse:
