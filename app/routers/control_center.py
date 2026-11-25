@@ -80,15 +80,19 @@ class UIAddFrogRequest(BaseModel):
     resistance_level: int = 7
     urgency: int = 6
     estimated_minutes: int = 20
+    preferred_time: str = "08:30"
+    window_end_time: str = "11:30"
 
 
 class UIAddRoutineRequest(BaseModel):
     user_id: str = "moshe"
     name: str
     domain: str = "physical"
+    standard_quantity: str = "3 סטים / 20 דקות"
     minimum_viable_version: str = "2 דקות גרסה מינימלית"
     estimated_minutes: int = 15
-    trigger_time_or_event: str = "08:00"
+    trigger_time_or_event: str = "10:00"
+    window_end_time: str = "13:00"
 
 
 class UIUpdatePrepRequest(BaseModel):
@@ -469,9 +473,58 @@ def report_frog_from_control_center(frog_id: str, outcome: str = "completed", us
     return FrogsService().report_frog_execution(frog_id, user_id=user_id, outcome=outcome)
 
 
+@router.post("/frogs/{frog_id}/remove", operation_id="removeFrogFromControlCenter")
+def remove_frog_from_control_center(frog_id: str, user_id: str = "moshe") -> dict[str, Any]:
+    return FrogsService().request_remove_frog(
+        frog_id=frog_id,
+        user_id=user_id,
+        reason="בוטל/הוסר ישירות ממרכז הבקרה על ידי המשתמש",
+        approval_confirmed=True,
+    )
+
+
+@router.post("/frogs/{frog_id}/move-to-routine", operation_id="moveFrogToRoutineFromControlCenter")
+def move_frog_to_routine_from_control_center(
+    frog_id: str,
+    user_id: str = "moshe",
+    trigger_time: str = "10:00",
+    window_end_time: str = "13:00",
+    standard_quantity: str = "3 סטים / 20 דקות",
+    minimum_viable_version: str = "סט בודד / 2 דקות",
+) -> dict[str, Any]:
+    frog = FrogsService().get_frog(frog_id)
+    if not frog:
+        raise HTTPException(status_code=404, detail="frog-not-found")
+    routine_res = RoutinesAndExecutionService().create_routine(
+        {
+            "user_id": user_id,
+            "name": frog["name"],
+            "domain": frog["domain"],
+            "trigger_time_or_event": trigger_time,
+            "window_end_time": window_end_time,
+            "standard_quantity": standard_quantity,
+            "minimum_viable_version": minimum_viable_version,
+            "estimated_minutes": frog["estimated_minutes"],
+            "allow_in_executor_mode": True,
+        }
+    )
+    FrogsService().request_remove_frog(
+        frog_id=frog_id,
+        user_id=user_id,
+        reason=f"הועבר להרגלים קבועים בחלון {trigger_time}–{window_end_time}",
+        approval_confirmed=True,
+    )
+    return {"success": True, "moved_frog": frog, "created_routine": routine_res.get("routine")}
+
+
 @router.post("/routines", operation_id="createRoutineFromControlCenter")
 def create_routine_from_control_center(request: UIAddRoutineRequest) -> dict[str, Any]:
     return RoutinesAndExecutionService().create_routine(request.model_dump())
+
+
+@router.post("/routines/{routine_id}/remove", operation_id="removeRoutineFromControlCenter")
+def remove_routine_from_control_center(routine_id: str, user_id: str = "moshe") -> dict[str, Any]:
+    return RoutinesAndExecutionService().remove_routine(routine_id, user_id=user_id)
 
 
 @router.post("/routines/{routine_id}/report", operation_id="reportRoutineFromControlCenter")

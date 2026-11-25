@@ -172,12 +172,12 @@ class RoutinesAndExecutionService:
                 """
                 insert into routines
                 (routine_id, user_id, name, domain, automation_kind, start_condition,
-                 action_sequence_json, trigger_time_or_event, frequency,
+                 action_sequence_json, trigger_time_or_event, window_end_time, standard_quantity, frequency,
                  minimum_viable_version, estimated_minutes, minimum_minutes,
                  skip_condition, completion_condition, difficulty_level,
                  flexible_streak_count, completions_count, skips_count,
                  last_completed_at, status, created_at, updated_at)
-                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     routine_id,
@@ -187,13 +187,15 @@ class RoutinesAndExecutionService:
                     "beneficial_habit_trigger",
                     str(payload.get("start_condition") or "זמן בוקר או סיום קפה"),
                     json_dump(action_sequence),
-                    str(payload.get("trigger_time_or_event") or "08:00"),
+                    str(payload.get("trigger_time_or_event") or "10:00"),
+                    str(payload.get("window_end_time") or "13:00"),
+                    str(payload.get("standard_quantity") or payload.get("completion_condition") or "3 סטים / 20 דקות"),
                     str(payload.get("frequency") or "daily"),
                     str(payload.get("minimum_viable_version") or "2 דקות של תנועה קלה / סט בודד"),
                     estimated_minutes,
                     minimum_minutes,
                     str(payload.get("skip_condition") or "כאב חריג, מחלה או אירוע חירום"),
-                    str(payload.get("completion_condition") or "ביצוע הרצף המלא או הגרסה המינימלית"),
+                    str(payload.get("completion_condition") or payload.get("standard_quantity") or "ביצוע הרצף המלא או הגרסה המינימלית"),
                     int(payload.get("difficulty_level", 4)),
                     0,
                     0,
@@ -526,7 +528,17 @@ class RoutinesAndExecutionService:
             "updated_at": row["updated_at"],
         }
 
+    def remove_routine(self, routine_id: str, user_id: str = "moshe") -> dict[str, Any]:
+        now = utc_now()
+        with db() as conn:
+            conn.execute(
+                "update routines set status = 'removed', updated_at = ? where routine_id = ?",
+                (now, routine_id),
+            )
+        return {"success": True, "routine_id": routine_id, "status": "removed"}
+
     def _routine_row(self, row: Any) -> dict[str, Any]:
+        keys = set(row.keys()) if hasattr(row, "keys") else set()
         return {
             "routine_id": row["routine_id"],
             "user_id": row["user_id"],
@@ -536,6 +548,8 @@ class RoutinesAndExecutionService:
             "start_condition": row["start_condition"],
             "action_sequence": json_load(row["action_sequence_json"], []),
             "trigger_time_or_event": row["trigger_time_or_event"],
+            "window_end_time": (row["window_end_time"] if "window_end_time" in keys and row["window_end_time"] else "13:00"),
+            "standard_quantity": (row["standard_quantity"] if "standard_quantity" in keys and row["standard_quantity"] else row["completion_condition"]),
             "frequency": row["frequency"],
             "minimum_viable_version": row["minimum_viable_version"],
             "estimated_minutes": int(row["estimated_minutes"]),

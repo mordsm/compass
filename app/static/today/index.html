@@ -188,6 +188,24 @@
       renderList('sec-done', todayState.sections?.completed || []);
     }
 
+    function renderBlocks(blocks) {
+      if (!blocks || !blocks.length) return '';
+      return `<div style="margin-top:6px; padding:10px; background:#0b1120; border-radius:8px; border:1px solid var(--border); font-size:0.84rem; color:#cbd5e1; width:100%;">` +
+        blocks.map(b => {
+          if (b.block_type === 'notes' || b.block_type === 'measurement' || b.block_type === 'question') {
+            return `<div style="margin-bottom:4px;"><strong>${b.title || 'פירוט'}:</strong> ${b.text || ''}</div>`;
+          }
+          if ((b.block_type === 'steps' || b.block_type === 'mistakes') && Array.isArray(b.steps)) {
+            return `<div style="margin-bottom:4px;"><strong>${b.title || 'שלבים'}:</strong><ul style="margin:2px 0 4px 0; padding-right:18px;">${b.steps.map(s => `<li>${s}</li>`).join('')}</ul></div>`;
+          }
+          if ((b.block_type === 'image' || b.block_type === 'infographic') && b.url) {
+            return `<div style="margin-top:6px;"><strong>🖼 ${b.title || 'אינפוגרפיקה / תמונה'}:</strong><br/><a href="${b.url}" target="_blank"><img src="${b.url}" alt="${b.title || ''}" style="max-width:100%; max-height:280px; border-radius:8px; margin-top:6px; border:1px solid var(--border);" /></a></div>`;
+          }
+          return '';
+        }).join('') +
+      `</div>`;
+    }
+
     function renderList(elId, items) {
       const el = document.getElementById(elId);
       if (!items.length) {
@@ -195,19 +213,22 @@
         return;
       }
       el.innerHTML = items.map(inst => `
-        <div class="task-row">
-          <div>
-            <input type="checkbox" ${inst.execution_outcome === 'completed' ? 'checked' : ''}
-              onchange="toggleCheck('${inst.instance_id}', this.checked)"
-              style="transform:scale(1.3); margin-left:8px; cursor:pointer;" />
-            <span class="badge ok">#${inst.daily_voice_number}</span>
-            <strong>${inst.name}</strong>
-            <span style="color:var(--muted); font-size:0.82rem;">(חלון: ${inst.preferred_time}–${inst.window_end_time || inst.check_time})</span>
+        <div class="task-row" style="flex-direction:column; align-items:stretch;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+              <input type="checkbox" ${inst.execution_outcome === 'completed' ? 'checked' : ''}
+                onchange="toggleCheck('${inst.instance_id}', this.checked)"
+                style="transform:scale(1.3); margin-left:8px; cursor:pointer;" />
+              <span class="badge ok">#${inst.daily_voice_number}</span>
+              <strong>${inst.name}</strong>
+              <span style="color:var(--muted); font-size:0.82rem;">(חלון: ${inst.preferred_time}–${inst.window_end_time || inst.check_time})</span>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button class="warn" onclick="stuckHelp('${inst.instance_id}')">נתקעתי</button>
+              <button class="secondary" onclick="undoTask('${inst.instance_id}')">↩ בטל</button>
+            </div>
           </div>
-          <div style="display:flex; gap:6px;">
-            <button class="warn" onclick="stuckHelp('${inst.instance_id}')">נתקעתי</button>
-            <button class="secondary" onclick="undoTask('${inst.instance_id}')">↩ בטל</button>
-          </div>
+          ${renderBlocks(inst.content_blocks)}
         </div>
       `).join('');
     }

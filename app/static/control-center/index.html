@@ -314,9 +314,13 @@
         <div id="frogs-box">טוען...</div>
       </div>
       <div class="form-box">
-        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">+ הוסף צפרדע חדשה למאגר:</div>
+        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">+ הוסף צפרדע חדשה למאגר (עם חלון זמן מתי ועד מתי):</div>
         <div class="form-row">
-          <input id="frog-name" type="text" placeholder="שם הצפרדע (למשל: אימון מתח / שיחה מורכבת)" style="flex:1;" />
+          <input id="frog-name" type="text" placeholder="שם הצפרדע (למשל: שיחה מורכבת / בדיקה שנתית)" style="flex:1;" />
+          <label>משעה:</label>
+          <input id="frog-start" type="text" value="08:30" style="width:58px;" title="שעת התחלה מועדפת" />
+          <label>עד שעה:</label>
+          <input id="frog-end" type="text" value="11:30" style="width:58px;" title="שעת סיום חלון" />
         </div>
         <div class="form-row">
           <select id="frog-type">
@@ -346,24 +350,34 @@
         <div id="routines-box">טוען...</div>
       </div>
       <div class="form-box">
-        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">+ צור הרגל חדש (במצב מתכנן בלבד):</div>
+        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">+ צור הרגל חדש (עם כמות רגילה, גרסה מינימלית וחלון זמן):</div>
         <div class="form-row">
-          <input id="rout-name" type="text" placeholder="שם ההרגל (למשל: תרגול בוקר)" style="flex:1;" />
+          <input id="rout-name" type="text" placeholder="שם ההרגל (למשל: אימון מתח ומשקולות)" style="flex:1;" />
           <select id="rout-domain">
             <option value="physical">פיזי</option>
             <option value="mental">מנטלי</option>
             <option value="ai_professional">AI</option>
           </select>
+          <label>משעה:</label>
+          <input id="rout-start" type="text" value="10:00" style="width:58px;" />
+          <label>עד:</label>
+          <input id="rout-end" type="text" value="13:00" style="width:58px;" />
         </div>
         <div class="form-row">
-          <input id="rout-min" type="text" placeholder="גרסה מינימלית (למשל: 2 דקות נשימה/סט 1)" style="flex:1;" />
+          <input id="rout-std" type="text" placeholder="כמות רגילה / יעד מלא (למשל: 3 סטים מתח + משקולות 20 דק׳)" style="flex:1;" />
+        </div>
+        <div class="form-row">
+          <input id="rout-min" type="text" placeholder="גרסה מינימלית לימים עמוסים (למשל: סט מתח בודד / 2 דק׳)" style="flex:1;" />
           <button onclick="addRoutine()">צור הרגל</button>
         </div>
-        <div class="form-row" style="margin-top:6px;">
-          <label>נשימה בפרוטוקול (שנ׳):</label>
-          <input id="prep-sec" type="number" value="45" min="20" max="120" style="width:65px;" />
-          <button class="secondary" onclick="savePrepProtocol()">עדכן פרוטוקול הכנה</button>
-        </div>
+        <details style="margin-top:6px; font-size:0.8rem; color:var(--muted);">
+          <summary style="cursor:pointer;">🧘 הגדרת פרוטוקול הכנה כללי (כמה שניות נשימה לפני פעולה עם התנגדות גבוהה)</summary>
+          <div class="form-row" style="margin-top:6px;">
+            <label>משך נשימת הרגעה לפני התחלה (שנ׳):</label>
+            <input id="prep-sec" type="number" value="45" min="20" max="120" style="width:65px;" />
+            <button class="secondary" onclick="savePrepProtocol()">עדכן פרוטוקול הכנה</button>
+          </div>
+        </details>
       </div>
     </div>
 
@@ -976,12 +990,15 @@
           <div>
             <strong>${f.name}</strong>
             <span class="badge">${f.frog_type === 'ongoing' ? 'מתמשכת' : 'חד-פעמית'}</span>
-            <span style="color:var(--muted);">התנגדות ${f.resistance_level}/10</span>
+            <span class="badge ok">🕒 ${f.preferred_time || '08:30'}–${f.window_end_time || '11:30'} (${f.estimated_minutes || 20} דק׳)</span>
+            <span style="color:var(--muted); font-size:0.78rem;">התנגדות ${f.resistance_level}/10</span>
           </div>
-          <div style="display:flex; gap:4px;">
+          <div style="display:flex; gap:4px; flex-wrap:wrap;">
             <button class="ok" onclick="reportFrog('${f.frog_id}', 'completed')">בוצע ✓</button>
             <button class="secondary" onclick="reportFrog('${f.frog_id}', 'partial')">חלקי</button>
             <button class="secondary" onclick="reportFrog('${f.frog_id}', 'deferred')">דחה</button>
+            <button class="secondary" onclick="moveFrogToRoutine('${f.frog_id}')" title="העבר להרגלים קבועים">🔄 להרגלים</button>
+            <button class="danger" onclick="removeFrog('${f.frog_id}')" title="בטל/הסר צפרדע זו">🗑 בטל</button>
           </div>
         </div>
       `).join('');
@@ -999,18 +1016,22 @@
       const routList = (routines.routines || []).map(r => `
         <div class="item-row">
           <div>
-            <strong>${r.name}</strong> (${r.domain}) – רצף גמיש: <span class="badge ok">${r.flexible_streak_count}</span>
-            <div style="font-size:0.78rem; color:var(--muted);">גרסה מינימלית: ${r.minimum_viable_version}</div>
+            <strong>${r.name}</strong> (${r.domain})
+            <span class="badge ok">🕒 ${r.trigger_time_or_event || '10:00'}–${r.window_end_time || '13:00'}</span>
+            <span>רצף גמיש: <span class="badge ok">${r.flexible_streak_count}</span></span>
+            <div style="font-size:0.8rem; color:#e2e8f0; margin-top:2px;"><strong>כמות רגילה:</strong> ${r.standard_quantity || r.completion_condition || 'רצף מלא'}</div>
+            <div style="font-size:0.78rem; color:var(--muted);"><strong>גרסה מינימלית:</strong> ${r.minimum_viable_version}</div>
           </div>
-          <div style="display:flex; gap:4px;">
+          <div style="display:flex; gap:4px; flex-wrap:wrap;">
             <button class="ok" onclick="reportRoutine('${r.routine_id}', 'completed')">מלא ✓</button>
             <button class="secondary" onclick="reportRoutine('${r.routine_id}', 'minimum_completed')">מינימלי</button>
             <button class="secondary" onclick="reportRoutine('${r.routine_id}', 'skipped')">דלג (ללא קנס)</button>
+            <button class="danger" onclick="removeRoutine('${r.routine_id}')" title="הסר הרגל">🗑</button>
           </div>
         </div>
       `).join('');
       document.getElementById('routines-box').innerHTML = `
-        <div><strong>הרגלים פעילים:</strong> ${routines.count ?? 0} | <strong>פרוטוקול הכנה (6 שלבים):</strong> ${prep.breathing_seconds ?? 45} שנ׳ נשימה</div>
+        <div><strong>הרגלים פעילים:</strong> ${routines.count ?? 0} | <span style="color:var(--muted); font-size:0.8rem;">פרוטוקול הרגעה כללי לפני משימות קשות: ${prep.breathing_seconds ?? 45} שנ׳ נשימה</span></div>
         <div style="margin-top:8px;">${routList || '<div style="color:var(--muted);">אין הרגלים רשומים – צור הרגל למטה.</div>'}</div>
       `;
 
@@ -1138,21 +1159,49 @@
       }
 
       const allInst = v6Today.all_instances || [];
+      const renderContentBlocksHtml = (blocks) => {
+        if (!blocks || !blocks.length) return '';
+        return `<div style="margin-top:6px; padding:8px; background:#111827; border-radius:6px; border:1px solid #1f2937; font-size:0.8rem; color:#cbd5e1;">` +
+          blocks.map(b => {
+            if (b.block_type === 'notes' || b.block_type === 'measurement' || b.block_type === 'question') {
+              return `<div style="margin-bottom:4px;"><strong>${b.title || 'פירוט'}:</strong> ${b.text || ''}</div>`;
+            }
+            if ((b.block_type === 'steps' || b.block_type === 'mistakes') && Array.isArray(b.steps)) {
+              return `<div style="margin-bottom:4px;"><strong>${b.title || 'שלבים'}:</strong><ul style="margin:2px 0 4px 0; padding-right:18px;">${b.steps.map(s => `<li>${s}</li>`).join('')}</ul></div>`;
+            }
+            if ((b.block_type === 'image' || b.block_type === 'infographic') && b.url) {
+              return `<div style="margin-top:6px;"><strong>🖼 ${b.title || 'תמונה/אינפוגרפיקה'}:</strong><br/><a href="${b.url}" target="_blank"><img src="${b.url}" alt="${b.title || ''}" style="max-width:100%; max-height:220px; border-radius:6px; margin-top:4px; border:1px solid var(--border);" /></a></div>`;
+            }
+            return '';
+          }).join('') +
+        `</div>`;
+      };
+
       const topSummaryEl = document.getElementById('top-today-summary');
       if (topSummaryEl) {
         topSummaryEl.innerHTML = allInst.length === 0
           ? '<div style="color:var(--muted);">רשימת היום ריקה כרגע – לחץ למעלה על "🚀 אתחל סדר יום ראשוני (Day-1 Bootstrap)" או על "🌅 מחזור בוקר".</div>'
-          : `<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:8px;">
+          : `<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:10px;">
               ${allInst.map(inst => `
-                <div style="background:#0b1120; border:1px solid var(--border); padding:8px 10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="background:#0b1120; border:1px solid var(--border); padding:10px 12px; border-radius:8px; display:flex; flex-direction:column; justify-content:space-between;">
                   <div>
-                    <span class="badge ok">#${inst.daily_voice_number}</span>
-                    <strong>${inst.name}</strong>
-                    <div style="font-size:0.76rem; color:var(--muted);">חלון: ${inst.preferred_time} עד ${inst.window_end_time || inst.check_time} (בדיקה: ${inst.check_time})</div>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                      <div>
+                        <span class="badge ok">#${inst.daily_voice_number}</span>
+                        <strong>${inst.name}</strong>
+                        <div style="font-size:0.76rem; color:var(--muted);">חלון: ${inst.preferred_time} עד ${inst.window_end_time || inst.check_time} (בדיקה: ${inst.check_time})</div>
+                      </div>
+                      <button class="${inst.execution_outcome === 'completed' ? 'secondary' : 'ok'}" onclick="reportV6Instance('${inst.instance_id}', 'completed')">
+                        ${inst.execution_outcome === 'completed' ? '✅ הושלם' : 'סמן בוצע ✓'}
+                      </button>
+                    </div>
+                    ${(inst.content_blocks && inst.content_blocks.length) ? `
+                      <details style="margin-top:6px;">
+                        <summary style="cursor:pointer; color:var(--accent); font-size:0.78rem; font-weight:600;">📖 הצג הוראות תרגיל ותמונות (${inst.content_blocks.length})</summary>
+                        ${renderContentBlocksHtml(inst.content_blocks)}
+                      </details>
+                    ` : ''}
                   </div>
-                  <button class="${inst.execution_outcome === 'completed' ? 'secondary' : 'ok'}" onclick="reportV6Instance('${inst.instance_id}', 'completed')">
-                    ${inst.execution_outcome === 'completed' ? '✅ הושלם' : 'סמן בוצע ✓'}
-                  </button>
                 </div>
               `).join('')}
             </div>`;
@@ -1163,20 +1212,23 @@
           אזור זמן: <code>${ctxMode.timezone || 'Asia/Jerusalem'}</code> (שבוע מתחיל ב-${ctxMode.week_starts_on || 'Sunday'})
         </div>
         ${allInst.map(inst => `
-          <div class="item-row">
-            <div>
-              <span class="badge ok">#${inst.daily_voice_number}</span>
-              <strong>${inst.name}</strong>
-              ${inst.media_only ? '<span class="badge warn">🎬 מדיה ללא טקסט</span>' : ''}
-              <span style="font-size:0.78rem; color:var(--muted);">(חלון: ${inst.preferred_time} עד ${inst.window_end_time || inst.check_time} | פתיחה ${inst.open_time} | בדיקה ${inst.check_time})</span>
-              <span class="badge ${inst.execution_outcome === 'completed' ? 'ok' : (inst.execution_outcome === 'unknown' ? '' : 'warn')}">${inst.execution_outcome}</span>
+          <div class="item-row" style="flex-direction:column; align-items:stretch;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+              <div>
+                <span class="badge ok">#${inst.daily_voice_number}</span>
+                <strong>${inst.name}</strong>
+                ${inst.media_only ? '<span class="badge warn">🎬 מדיה ללא טקסט</span>' : ''}
+                <span style="font-size:0.78rem; color:var(--muted);">(חלון: ${inst.preferred_time} עד ${inst.window_end_time || inst.check_time} | פתיחה ${inst.open_time} | בדיקה ${inst.check_time})</span>
+                <span class="badge ${inst.execution_outcome === 'completed' ? 'ok' : (inst.execution_outcome === 'unknown' ? '' : 'warn')}">${inst.execution_outcome}</span>
+              </div>
+              <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                <button class="ok" onclick="reportV6Instance('${inst.instance_id}', 'completed')">✓ בוצע</button>
+                <button class="secondary" onclick="undoV6Instance('${inst.instance_id}')">↩ בטל</button>
+                <button class="warn" onclick="showV6Stuck('${inst.instance_id}')">נתקעתי</button>
+                <button class="secondary" onclick="checkV6Rule('${inst.instance_id}')">בדיקת כלל</button>
+              </div>
             </div>
-            <div style="display:flex; gap:4px; flex-wrap:wrap;">
-              <button class="ok" onclick="reportV6Instance('${inst.instance_id}', 'completed')">✓ בוצע</button>
-              <button class="secondary" onclick=" undoV6Instance('${inst.instance_id}')">↩ בטל</button>
-              <button class="warn" onclick="showV6Stuck('${inst.instance_id}')">נתקעתי</button>
-              <button class="secondary" onclick="checkV6Rule('${inst.instance_id}')">בדיקת כלל</button>
-            </div>
+            ${renderContentBlocksHtml(inst.content_blocks)}
           </div>
         `).join('')}
       `;
@@ -1324,7 +1376,9 @@
           name,
           frog_type: document.getElementById('frog-type').value,
           domain: document.getElementById('frog-domain').value,
-          resistance_level: parseInt(document.getElementById('frog-res').value, 10) || 7
+          resistance_level: parseInt(document.getElementById('frog-res').value, 10) || 7,
+          preferred_time: document.getElementById('frog-start')?.value || '08:30',
+          window_end_time: document.getElementById('frog-end')?.value || '11:30'
         })
       });
       const data = await res.json();
@@ -1342,6 +1396,24 @@
       await loadOverview();
     }
 
+    async function removeFrog(frogId) {
+      const res = await fetch(`/api/control-center/frogs/${encodeURIComponent(frogId)}/remove?user_id=moshe`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      showOutput('🗑 צפרדע הוסרה ממאגר הצפרדעים:', data);
+      await loadOverview();
+    }
+
+    async function moveFrogToRoutine(frogId) {
+      const res = await fetch(`/api/control-center/frogs/${encodeURIComponent(frogId)}/move-to-routine?user_id=moshe&trigger_time=10:00&window_end_time=13:00`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      showOutput('🔄 הצפרדע הועברה למאגר ההרגלים הקבועים (10:00–13:00):', data);
+      await loadOverview();
+    }
+
     async function addRoutine() {
       const name = document.getElementById('rout-name').value.trim();
       if (!name) return alert('נא להזין שם להרגל');
@@ -1352,12 +1424,26 @@
           user_id: 'moshe',
           name,
           domain: document.getElementById('rout-domain').value,
+          trigger_time_or_event: document.getElementById('rout-start')?.value || '10:00',
+          window_end_time: document.getElementById('rout-end')?.value || '13:00',
+          standard_quantity: document.getElementById('rout-std')?.value.trim() || '3 סטים / 20 דקות',
           minimum_viable_version: document.getElementById('rout-min').value.trim() || '2 דקות גרסה מינימלית'
         })
       });
       const data = await res.json();
       document.getElementById('rout-name').value = '';
+      if (document.getElementById('rout-std')) document.getElementById('rout-std').value = '';
+      document.getElementById('rout-min').value = '';
       showOutput('🔄 יצירת הרגל:', data);
+      await loadOverview();
+    }
+
+    async function removeRoutine(routineId) {
+      const res = await fetch(`/api/control-center/routines/${encodeURIComponent(routineId)}/remove?user_id=moshe`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      showOutput('🗑 הרגל הוסר:', data);
       await loadOverview();
     }
 

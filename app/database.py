@@ -905,6 +905,16 @@ def init_db() -> None:
             );
             """
         )
+        for alter_sql in [
+            "alter table frogs add column preferred_time text default '08:30'",
+            "alter table frogs add column window_end_time text default '11:30'",
+            "alter table routines add column window_end_time text default '13:00'",
+            "alter table routines add column standard_quantity text default ''",
+        ]:
+            try:
+                conn.execute(alter_sql)
+            except Exception:
+                pass
 
 
 def json_dump(value: Any) -> str:

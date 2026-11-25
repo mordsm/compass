@@ -38,14 +38,23 @@ class FrogsService:
             raise ValueError("frog_type must be 'one_time' or 'ongoing'")
 
         with db() as conn:
+            existing_same_name = conn.execute(
+                "select frog_id from frogs where user_id = ? and lower(name) = lower(?) and status = 'active'",
+                (user_id, str(payload["name"]).strip()),
+            ).fetchone()
+            if existing_same_name and not payload.get("allow_duplicate_name"):
+                existing_frog = self.get_frog(existing_same_name["frog_id"])
+                return {"success": True, "frog": existing_frog, "already_existed": True}
+
             conn.execute(
                 """
                 insert into frogs
                 (frog_id, user_id, name, description, domain, frog_type, importance,
                  resistance_level, difficulty_level, urgency, estimated_minutes,
                  attempts_count, completions_count, last_performed_at, status,
-                 completion_condition, safety_constraints_json, created_at, updated_at)
-                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 completion_condition, safety_constraints_json, preferred_time, window_end_time,
+                 created_at, updated_at)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     frog_id,
@@ -65,6 +74,8 @@ class FrogsService:
                     str(payload.get("status") or "active"),
                     str(payload.get("completion_condition") or "השלמת הפעולה המוגדרת"),
                     json_dump(payload.get("safety_constraints") or []),
+                    str(payload.get("preferred_time") or "08:30"),
+                    str(payload.get("window_end_time") or "11:30"),
                     now,
                     now,
                 ),
@@ -746,6 +757,7 @@ class FrogsService:
         }
 
     def _frog_row(self, row: Any) -> dict[str, Any]:
+        keys = set(row.keys()) if hasattr(row, "keys") else set()
         return {
             "frog_id": row["frog_id"],
             "user_id": row["user_id"],
@@ -764,6 +776,8 @@ class FrogsService:
             "status": row["status"],
             "completion_condition": row["completion_condition"],
             "safety_constraints": json_load(row["safety_constraints_json"], []),
+            "preferred_time": (row["preferred_time"] if "preferred_time" in keys and row["preferred_time"] else "08:30"),
+            "window_end_time": (row["window_end_time"] if "window_end_time" in keys and row["window_end_time"] else "11:30"),
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
         }

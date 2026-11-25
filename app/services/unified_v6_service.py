@@ -211,7 +211,7 @@ class UnifiedV6Service:
         with db() as conn:
             conn.execute(
                 """
-                insert into v6_activity_templates
+                insert or replace into v6_activity_templates
                 (template_id, user_id, name, aliases_json, description, open_time,
                  preferred_time, window_end_time, check_time, frequency, content_blocks_json,
                  media_only, completion_condition, evidence_type, estimated_minutes,
@@ -1782,18 +1782,59 @@ class UnifiedV6Service:
         else:
             # 1. Try live SelfManagementAdapter (/api/today)
             try:
+                sm_base_url = "http://127.0.0.1:8001"
+                try:
+                    from app.config import get_settings
+                    sm_base_url = get_settings().self_manage_base_url.rstrip("/")
+                except Exception:
+                    pass
                 live_res = SelfManagementAdapter().get_today()
                 items = (live_res.get("result") or {}).get("items") or (live_res.get("result") or {}).get("plan_items") or []
                 if live_res.get("connected") and items:
                     source_kind = "self_manage_api"
                     for it in items:
                         ex = it.get("exercise") or it
+                        raw_title = ex.get("label") or ex.get("title") or ex.get("name") or ex.get("slug") or "תרגיל בוקר"
+                        dom_info = it.get("domain") or ex.get("domain")
+                        if isinstance(dom_info, dict):
+                            dom_slug = str(dom_info.get("slug") or it.get("kind") or "physical")
+                            dom_label = str(dom_info.get("label") or dom_slug)
+                        else:
+                            dom_slug = str(dom_info or it.get("kind") or "physical")
+                            dom_label = dom_slug
+
+                        kind_str = str(it.get("kind") or dom_slug).lower()
+                        compass_goal = "mental" if kind_str == "mental" else ("ai_professional" if kind_str == "cognitive" else "physical")
+
+                        c_blocks: list[dict[str, Any]] = []
+                        if ex.get("notes"):
+                            c_blocks.append({"block_type": "notes", "title": "דגשים ומטרה", "text": str(ex["notes"])})
+                        if ex.get("how_to") and isinstance(ex["how_to"], list):
+                            c_blocks.append({"block_type": "steps", "title": "איך מבצעים", "steps": [str(s) for s in ex["how_to"]]})
+                        if ex.get("measurement"):
+                            c_blocks.append({"block_type": "measurement", "title": "מדד ביצוע", "text": str(ex["measurement"])})
+                        if ex.get("common_mistakes") and isinstance(ex["common_mistakes"], list):
+                            c_blocks.append({"block_type": "mistakes", "title": "טעויות נפוצות", "steps": [str(m) for m in ex["common_mistakes"]]})
+                        for m in (ex.get("media") or []):
+                            m_url = str(m.get("url") or "")
+                            if m_url.startswith("/"):
+                                m_url = f"{sm_base_url}{m_url}"
+                            c_blocks.append(
+                                {
+                                    "block_type": str(m.get("type") or "image"),
+                                    "title": str(m.get("title") or raw_title),
+                                    "url": m_url,
+                                }
+                            )
+
                         exercises_to_import.append(
                             {
-                                "external_id": str(ex.get("id") or it.get("id") or ex.get("title")),
-                                "title": str(ex.get("title") or ex.get("name") or "תרגיל בוקר"),
-                                "domain": str(ex.get("domain") or "physical"),
-                                "estimated_minutes": int(ex.get("duration_minutes") or it.get("duration_minutes") or 10),
+                                "external_id": str(ex.get("id") or it.get("plan_item_id") or ex.get("slug") or raw_title),
+                                "title": f"תרגיל בוקר ({dom_label}): {raw_title}",
+                                "domain": compass_goal,
+                                "estimated_minutes": int(ex.get("minutes_default") or ex.get("duration_minutes") or it.get("duration_minutes") or 10),
+                                "description": str(ex.get("notes") or f"יובא מתוך Self Management ({dom_label})"),
+                                "content_blocks": c_blocks,
                             }
                         )
             except Exception:
@@ -1813,12 +1854,23 @@ class UnifiedV6Service:
                                 sm_conn.row_factory = sqlite3.Row
                                 rows = sm_conn.execute("select * from exercise limit 3").fetchall()
                                 for r in rows:
+                                    r_keys = r.keys()
+                                    r_title = r["label"] if "label" in r_keys and r["label"] else (r["title"] if "title" in r_keys else r["slug"])
+                                    r_notes = r["notes"] if "notes" in r_keys and r["notes"] else ""
+                                    r_howto = json_load(r["how_to"], []) if "how_to" in r_keys and isinstance(r["how_to"], str) else []
+                                    c_blocks = []
+                                    if r_notes:
+                                        c_blocks.append({"block_type": "notes", "title": "דגשים", "text": str(r_notes)})
+                                    if r_howto:
+                                        c_blocks.append({"block_type": "steps", "title": "איך מבצעים", "steps": [str(s) for s in r_howto]})
                                     exercises_to_import.append(
                                         {
                                             "external_id": f"sm_db_{r['id']}",
-                                            "title": str(r["title"] if "title" in r.keys() else r["name"]),
+                                            "title": f"תרגיל בוקר: {r_title}",
                                             "domain": "physical",
-                                            "estimated_minutes": 10,
+                                            "estimated_minutes": int(r["minutes_default"]) if "minutes_default" in r_keys and r["minutes_default"] else 10,
+                                            "description": str(r_notes or "תרגיל בוקר מ-Self Management"),
+                                            "content_blocks": c_blocks,
                                         }
                                     )
                             if exercises_to_import:
@@ -1831,9 +1883,40 @@ class UnifiedV6Service:
             if not exercises_to_import:
                 source_kind = "self_manage_morning_seed"
                 exercises_to_import = [
-                    {"external_id": "sm_morn_1", "title": "תרגיל בוקר Self-Manage: תנועה ומפרקים", "domain": "physical", "estimated_minutes": 10},
-                    {"external_id": "sm_morn_2", "title": "תרגיל בוקר Self-Manage: נשימה ומיקוד קשב", "domain": "mental", "estimated_minutes": 5},
+                    {
+                        "external_id": "sm_morn_1",
+                        "title": "תרגיל בוקר Self-Manage: תנועה ומפרקים",
+                        "domain": "physical",
+                        "estimated_minutes": 10,
+                        "description": "הנעת מפרקים ופתיחת טווחי תנועה לבוקר.",
+                        "content_blocks": [
+                            {"block_type": "notes", "title": "דגשים", "text": "הנעת כתפיים, צוואר, עמוד שדרה וירכיים בתנועה איטית ונשימה חופשית."},
+                            {"block_type": "steps", "title": "שלבי ביצוע", "steps": ["10 סיבובי כתפיים לאחור", "פתיחות ירך 60 שניות לכל צד", "5 נשימות עמוקות תוך הרפיית הלסת"]},
+                        ],
+                    },
+                    {
+                        "external_id": "sm_morn_2",
+                        "title": "תרגיל בוקר Self-Manage: נשימה ומיקוד קשב",
+                        "domain": "mental",
+                        "estimated_minutes": 5,
+                        "description": "איפוס קשב ונשימה מודעת לפני תחילת היום.",
+                        "content_blocks": [
+                            {"block_type": "notes", "title": "דגשים", "text": "שאיפה ל-4 שניות, נשיפה איטית ל-6 שניות, מיקוד בתחושה הגופנית."},
+                            {"block_type": "steps", "title": "שלבי ביצוע", "steps": ["שב זקוף והרפה כתפיים", "בצע 8 מחזורי נשימה 4-6", "הגדר כוונה אחת ברורה לשעה הקרובה"]},
+                        ],
+                    },
                 ]
+
+        # Clean up any legacy generic "תרגיל בוקר" instances without details from earlier sync runs
+        with db() as conn:
+            conn.execute(
+                "delete from v6_activity_instances where user_id = ? and instance_date = ? and name = 'תרגיל בוקר'",
+                (user_id, day_str),
+            )
+            conn.execute(
+                "delete from v6_activity_templates where user_id = ? and name = 'תרגיל בוקר'",
+                (user_id,),
+            )
 
         imported_instances: list[dict[str, Any]] = []
         skipped_duplicates: list[str] = []
@@ -1842,7 +1925,10 @@ class UnifiedV6Service:
             ext_id = str(ex.get("external_id") or ex.get("title")).strip()
             title = str(ex.get("title")).strip()
             domain = str(ex.get("domain") or "physical").strip()
+            c_blocks = list(ex.get("content_blocks") or [])
+            desc_text = str(ex.get("description") or f"יובא מתוך Self Management ({source_kind})")
             import_key = f"{user_id}:{day_str}:{ext_id}"
+            tpl_id = f"tpl_sm_{user_id}_{re.sub(r'[^a-zA-Z0-9_]', '_', ext_id)[:24]}"
 
             with db() as conn:
                 existing_imp = conn.execute(
@@ -1850,18 +1936,38 @@ class UnifiedV6Service:
                     (import_key,),
                 ).fetchone()
             if existing_imp:
+                # Upgrade existing template & instance with full title, text, and images if it was previously generic
+                with db() as conn:
+                    conn.execute(
+                        """
+                        update v6_activity_templates
+                        set name = ?, description = ?, content_blocks_json = ?, updated_at = ?
+                        where template_id = ?
+                        """,
+                        (title, desc_text, json_dump(c_blocks), now, tpl_id),
+                    )
+                    conn.execute(
+                        """
+                        update v6_activity_instances
+                        set name = ?, content_blocks_json = ?, updated_at = ?
+                        where instance_id = ?
+                        """,
+                        (title, json_dump(c_blocks), now, existing_imp["compass_instance_id"]),
+                    )
                 skipped_duplicates.append(ext_id)
                 continue
 
             created = self.create_activity_template(
                 {
                     "user_id": user_id,
-                    "template_id": f"tpl_sm_{user_id}_{re.sub(r'[^a-zA-Z0-9_]', '_', ext_id)[:24]}",
+                    "template_id": tpl_id,
                     "name": title,
                     "aliases": [title],
-                    "description": f"יובא מתוך Self Management ({source_kind})",
+                    "description": desc_text,
+                    "content_blocks": c_blocks,
                     "open_time": "06:30",
                     "preferred_time": "07:30",
+                    "window_end_time": "10:30",
                     "check_time": "11:30",
                     "estimated_minutes": int(ex.get("estimated_minutes", 10)),
                     "goal_ids": [domain],
@@ -2549,21 +2655,14 @@ class UnifiedV6Service:
         4. Creates 3 scheduled messages/media items (07:00 Morning Infographic, 12:00 Mental Audio Pause, 18:00 Evening Question).
         """
         from app.services.frogs_service import FrogsService
+        from app.services.routines_service import RoutinesAndExecutionService
 
         day_str = target_date or date.today().isoformat()
         frogs_svc = FrogsService()
+        routines_svc = RoutinesAndExecutionService()
         current_frogs = frogs_svc.list_frogs(user_id=user_id, status="active")
 
         seed_frogs = [
-            {
-                "name": "אימון מתח ומשקולות",
-                "frog_type": "ongoing",
-                "domain": "physical",
-                "importance": 10,
-                "resistance_level": 8,
-                "urgency": 8,
-                "estimated_minutes": 20,
-            },
             {
                 "name": "סגירת ניסוי וארכיטקטורת סוכני AI",
                 "frog_type": "one_time",
@@ -2572,6 +2671,8 @@ class UnifiedV6Service:
                 "resistance_level": 7,
                 "urgency": 8,
                 "estimated_minutes": 30,
+                "preferred_time": "09:00",
+                "window_end_time": "11:00",
             },
             {
                 "name": "שיחה או תיאום מורכב שנדחה",
@@ -2581,6 +2682,8 @@ class UnifiedV6Service:
                 "resistance_level": 8,
                 "urgency": 7,
                 "estimated_minutes": 15,
+                "preferred_time": "11:00",
+                "window_end_time": "12:30",
             },
             {
                 "name": "טיפול במשימה בירוקרטית/פיננסית מעיקה",
@@ -2590,6 +2693,19 @@ class UnifiedV6Service:
                 "resistance_level": 8,
                 "urgency": 7,
                 "estimated_minutes": 20,
+                "preferred_time": "14:00",
+                "window_end_time": "16:00",
+            },
+            {
+                "name": "תיאום בדיקה שנתית",
+                "frog_type": "one_time",
+                "domain": "physical",
+                "importance": 8,
+                "resistance_level": 7,
+                "urgency": 7,
+                "estimated_minutes": 15,
+                "preferred_time": "08:30",
+                "window_end_time": "10:30",
             },
         ]
         existing_frog_names = {f["name"] for f in current_frogs["frogs"]}
@@ -2598,6 +2714,24 @@ class UnifiedV6Service:
             if sf["name"] not in existing_frog_names and (current_frogs["active_count"] + created_frogs) < 4:
                 frogs_svc.create_frog({"user_id": user_id, **sf})
                 created_frogs += 1
+
+        # Ensure "אימון מתח ומשקולות" is in Routines (Habits) around 10:00 - 13:00
+        existing_routines = {r["name"] for r in routines_svc.list_routines(user_id=user_id, status="active")["routines"]}
+        if "אימון מתח ומשקולות" not in existing_routines:
+            routines_svc.create_routine(
+                {
+                    "user_id": user_id,
+                    "name": "אימון מתח ומשקולות",
+                    "domain": "physical",
+                    "trigger_time_or_event": "10:00",
+                    "window_end_time": "13:00",
+                    "standard_quantity": "3 סטים מתח (5 חזרות) + 3 סטים משקולות (20 דק׳)",
+                    "minimum_viable_version": "סט אחד של מתח או 2 דקות משקולות",
+                    "estimated_minutes": 20,
+                    "minimum_minutes": 2,
+                    "allow_in_executor_mode": True,
+                }
+            )
 
         # Seed core V6 daily activities
         existing_tpl_names = {t["name"] for t in self.list_activity_templates(user_id=user_id, status="all")}
