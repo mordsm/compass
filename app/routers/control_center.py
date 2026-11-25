@@ -495,6 +495,16 @@ def update_domain_from_control_center(request: UIUpdateDomainRequest) -> dict[st
     return GrowthChallengesAndPlayService().upsert_domain(request.model_dump(exclude_none=True))
 
 
+@router.post("/domains/{slug}/practice", operation_id="recordDomainPracticeFromControlCenter")
+def record_domain_practice_from_control_center(slug: str, user_id: str = "moshe") -> dict[str, Any]:
+    return GrowthChallengesAndPlayService().record_domain_activity(user_id=user_id, slug=slug)
+
+
+@router.post("/domains/neglect-check", operation_id="checkNeglectedDomainsFromControlCenter")
+def check_neglected_domains_from_control_center(user_id: str = "moshe") -> dict[str, Any]:
+    return GrowthChallengesAndPlayService().check_neglected_domains(user_id=user_id, neglect_threshold_days=7)
+
+
 @router.post("/challenges", operation_id="createChallengeFromControlCenter")
 def create_challenge_from_control_center(request: UIAddChallengeRequest) -> dict[str, Any]:
     return GrowthChallengesAndPlayService().create_challenge(request.model_dump())

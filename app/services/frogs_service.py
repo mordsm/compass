@@ -653,6 +653,12 @@ class FrogsService:
         }
 
         updated_frog = self.get_frog(frog_id)
+        if outcome in {"completed", "partial"} and frog.get("domain"):
+            try:
+                from app.services.growth_service import GrowthChallengesAndPlayService
+                GrowthChallengesAndPlayService().record_domain_activity(user_id, str(frog["domain"]), occurred_at=now)
+            except Exception:
+                pass
         repo.audit("frogs.report", user_id, {"frog_id": frog_id, "outcome": outcome, "new_status": new_status})
         return {
             "success": True,

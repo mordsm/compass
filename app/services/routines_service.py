@@ -333,6 +333,12 @@ class RoutinesAndExecutionService:
                 )
 
         updated = self.get_routine(routine_id)
+        if outcome in {"completed", "minimum_completed"} and routine.get("domain"):
+            try:
+                from app.services.growth_service import GrowthChallengesAndPlayService
+                GrowthChallengesAndPlayService().record_domain_activity(user_id, str(routine["domain"]), occurred_at=now)
+            except Exception:
+                pass
         feedback = (
             f"השגרה הושלמה בגרסה המינימלית ('{routine['minimum_viable_version']}') – שמירה מצוינת על עקביות!"
             if used_min
