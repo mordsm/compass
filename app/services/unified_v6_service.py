@@ -579,7 +579,7 @@ class UnifiedV6Service:
                 )
 
         if final_outcome == "completed" and tpl and tpl.get("goal_ids"):
-            from app.services.growth_challenges_service import GrowthChallengesAndPlayService
+            from app.services.growth_service import GrowthChallengesAndPlayService
 
             growth_svc = GrowthChallengesAndPlayService()
             for slug in tpl.get("goal_ids") or []:

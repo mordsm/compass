@@ -704,7 +704,7 @@ class MentalSkillsService:
         if eval_res.get("connected") and eval_res.get("result"):
             repo.save_rule_evaluation(rule_evt, eval_res["result"])
 
-        from app.services.growth_challenges_service import GrowthChallengesAndPlayService
+        from app.services.growth_service import GrowthChallengesAndPlayService
 
         GrowthChallengesAndPlayService().record_domain_activity(user_id=user_id, domain_slug="mental", occurred_at=now)
 
