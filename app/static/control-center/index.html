@@ -257,6 +257,7 @@
         <option value="focus">מצב: מיקוד (Focus)</option>
       </select>
       <button id="mute-btn" class="warn" onclick="toggleGlobalMute()">🔇 השתק הקראות (Mute)</button>
+      <button class="secondary" onclick="testTtsSpeak()">🔊 השמע הקראת ניסיון</button>
       <button class="ok" onclick="runDayOneBootstrap()">🚀 אתחל סדר יום ראשוני (Day-1 Bootstrap)</button>
       <button class="secondary" onclick="runSleepCatchup()">⏰ התאוששות משינה</button>
       <button class="ok" onclick="syncSelfManageMorning()">🏋️ ייבא תרגילי בוקר (Self-Manage)</button>
@@ -267,6 +268,7 @@
       <button class="secondary" onclick="runCycle('weekly')">📅 שבועי</button>
       <button class="secondary" onclick="runCycle('monthly')">🗓 חודשי</button>
       <button class="secondary" onclick="loadOverview()">🔄 רענן</button>
+      <button class="help-btn" onclick="openHelp('top_toolbar')" title="הסבר מלא על כל כפתורי סרגל הכלים העליון">?</button>
     </div>
   </header>
 
@@ -530,31 +532,54 @@
       </div>
       <div class="form-row">
         <label>אירוע מפעיל (Trigger):</label>
-        <select id="rule-evt">
-          <option value="daily_plan.evaluate">daily_plan.evaluate (בדיקת תוכנית יומית)</option>
-          <option value="evening_review.frogs_check">evening_review.frogs_check (בדיקת מאגר צפרדעים בערב)</option>
-          <option value="frog.morning_selection">frog.morning_selection (בחירת צפרדע בבוקר)</option>
-          <option value="routine.resistance_detected">routine.resistance_detected (זיהוי התנגדות להרגל)</option>
-          <option value="challenge.evaluate">challenge.evaluate (הערכת אתגר אדפטיבי)</option>
-          <option value="assessment.trend_requested">assessment.trend_requested (בקשת מגמה מנטלית)</option>
-        </select>
+        <input id="rule-evt" list="rule-evt-list" type="text" value="daily_plan.evaluate" placeholder="בחר או הקלד אירוע מפעיל..." style="width:240px;" />
+        <datalist id="rule-evt-list">
+          <option value="daily_plan.evaluate">בדיקת תוכנית יומית (daily_plan.evaluate)</option>
+          <option value="evening_review.frogs_check">בדיקת מאגר צפרדעים בערב (evening_review.frogs_check)</option>
+          <option value="frog.morning_selection">בחירת צפרדע בבוקר (frog.morning_selection)</option>
+          <option value="frog.completed">סיום צפרדע (frog.completed)</option>
+          <option value="frog.remove_requested">בקשת הסרת צפרדע (frog.remove_requested)</option>
+          <option value="routine.resistance_detected">זיהוי התנגדות להרגל (routine.resistance_detected)</option>
+          <option value="challenge.evaluate">הערכת אתגר אדפטיבי (challenge.evaluate)</option>
+          <option value="assessment.trend_requested">בקשת מגמה מנטלית (assessment.trend_requested)</option>
+          <option value="weekly_review.core_domains_check">בדיקת הזנחת תחומי ליבה (weekly_review.core_domains_check)</option>
+          <option value="weekly_review.silent_wins_check">בדיקת ניצחונות שקטים (weekly_review.silent_wins_check)</option>
+          <option value="policy.change_requested">בקשת שינוי מדיניות (policy.change_requested)</option>
+        </datalist>
         <label>שדה תנאי:</label>
-        <input id="rule-field" type="text" value="payload.energy_level" style="width:180px;" />
+        <input id="rule-field" list="rule-field-list" type="text" value="payload.energy_level" placeholder="בחר או הקלד שדה תנאי..." style="width:240px;" />
+        <datalist id="rule-field-list">
+          <option value="payload.energy_level">רמת אנרגיה 1-5 (payload.energy_level)</option>
+          <option value="payload.available_minutes">דקות פנויות ביום (payload.available_minutes)</option>
+          <option value="payload.planned_minutes">דקות מתוכננות בתוכנית (payload.planned_minutes)</option>
+          <option value="payload.core_domains_scheduled_count">כמות תחומי ליבה ששובצו (payload.core_domains_scheduled_count)</option>
+          <option value="payload.active_frogs_count">כמות צפרדעים פעילות במאגר (payload.active_frogs_count)</option>
+          <option value="payload.frog_type">סוג צפרדע one_time/ongoing (payload.frog_type)</option>
+          <option value="payload.resistance_level">רמת התנגדות 1-10 (payload.resistance_level)</option>
+          <option value="payload.pain_or_limitation">האם דווח כאב true/false (payload.pain_or_limitation)</option>
+          <option value="payload.consecutive_completions">השלמות רצופות באתגר (payload.consecutive_completions)</option>
+          <option value="payload.event_count">מספר אירועים מנטליים למגמה (payload.event_count)</option>
+          <option value="payload.max_days_since_core_activity">ימים ללא תרגול תחום ליבה (payload.max_days_since_core_activity)</option>
+          <option value="payload.ai_weekly_activity_count">תרגולי AI השבוע (payload.ai_weekly_activity_count)</option>
+          <option value="payload.is_material_change">האם שינוי מדיניות מהותי (payload.is_material_change)</option>
+        </datalist>
         <select id="rule-op">
           <option value="lte">קטן או שווה (lte)</option>
           <option value="lt">קטן מ- (lt)</option>
           <option value="gte">גדול או שווה (gte)</option>
           <option value="gt">גדול מ- (gt)</option>
           <option value="eq">שווה ל- (eq)</option>
+          <option value="neq">שונה מ- (neq)</option>
         </select>
         <input id="rule-val" type="text" value="2" placeholder="ערך" style="width:80px;" />
         <label>תוצאה:</label>
         <select id="rule-eff">
-          <option value="recommendation_only">המלצה (recommendation_only)</option>
+          <option value="recommendation_only">המלצה מותאמת (recommendation_only)</option>
           <option value="allow">אישור אוטומטי (allow)</option>
           <option value="require_approval">דרוש אישור משתמש (require_approval)</option>
           <option value="block">חסימת פעולה (block)</option>
         </select>
+        <input id="rule-reason" type="text" value="CUSTOM_RULE_MATCHED" placeholder="קוד תוצאה/הנחיה" style="width:155px;" title="קוד תוצאה או פעולה נדרשת" />
         <button onclick="createNewRule()">בנה ושמור חוק</button>
       </div>
     </div>
@@ -733,17 +758,29 @@
     <div class="card">
       <div>
         <div class="card-header">
-          <h2>👁️ 18. דיווח קשב בלחיצה אחת (עבדתי / גלשתי / הפסקה) ומתזמן שרת</h2>
+          <h2>👁️ 18. דיווח קשב בלחיצה אחת (כולל דיווח בדיעבד וסיוע "נתקעתי") ומתזמן שרת</h2>
           <button class="help-btn" onclick="openHelp('card18')" title="הסבר על קובייה 18">?</button>
         </div>
         <div id="v6-attention-box">טוען...</div>
       </div>
       <div class="form-box">
-        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">דיווח עצמי אופציונלי בלחיצה אחת (ללא איסוף תוכן גלישה או צילומי מסך):</div>
+        <div style="font-weight:600; margin-bottom:6px; color:var(--accent);">דיווח עצמי אופציונלי בלחיצה אחת (בזמן אמת או בדיעבד על לפני שעה/שעתיים):</div>
+        <div class="form-row">
+          <label>על מתי הדיווח?</label>
+          <select id="attn-offset">
+            <option value="0">עכשיו (בזמן אמת)</option>
+            <option value="30">לפני חצי שעה (30 דק׳)</option>
+            <option value="60">לפני שעה (60 דק׳)</option>
+            <option value="120">לפני שעתיים (120 דק׳)</option>
+            <option value="180">לפני 3 שעות (180 דק׳)</option>
+          </select>
+          <input id="attn-note" type="text" placeholder="הערת הקשר אופציונלית..." style="flex:1;" />
+        </div>
         <div class="form-row">
           <button class="ok" onclick="reportV6Attention('worked')">💻 עבדתי</button>
           <button class="secondary" onclick="reportV6Attention('browsed')">🌐 גלשתי</button>
           <button class="secondary" onclick="reportV6Attention('break')">☕ הפסקה</button>
+          <button class="warn" onclick="showGeneralStuckHelp()">🧱 נתקעתי עכשיו</button>
           <button id="attn-pause-btn" class="warn" onclick="toggleV6AttentionPause()">⏹ עצור מעקב מיידית</button>
         </div>
         <div class="form-row" style="margin-top:6px;">
@@ -793,12 +830,19 @@
     let currentState = null;
 
     const HELP_CONTENT = {
+      top_toolbar: {
+        title: "🧭 סרגל הכלים העליון: מה עושה כל כפתור?",
+        what: "סרגל ההפעלה המהיר בראש המסך ששולט על מחזורי היום, ההקראות הקוליות, ייבוא תרגילי הבוקר והגיבוי.",
+        why: "כדי שתוכל להריץ בלחיצה אחת כל תהליך יומי/שבועי או לבדוק את תגובת המערכת בלי לחפש בתפריטים.",
+        how: "<ul><li><strong>🚀 אתחל סדר יום ראשוני (Day-1 Bootstrap):</strong> כפתור הקמה חד-פעמי (Idempotent – בטוח ללחיצה חוזרת ללא כפילויות) שטוען בבת אחת: 4 צפרדעים למאגר, את ההרגל 'אימון מתח ומשקולות' ב-10:00–13:00, 3 פעילויות ליבה יומיות (כתיבה חופשית 09:10, סשן עומק AI 10:30, פעילות גופנית 17:00), מסנכרן את תרגילי הבוקר מ-Self-Manage עם הטקסט והאינפוגרפיקות שלהם, ויוצר 3 הודעות מתוזמנות (07:00, 12:00, 18:00).</li><li><strong>⏰ התאוששות משינה (Sleep Catch-Up):</strong> כשהמחשב או השרת היה במצב שינה בלילה (00:00–06:00) והתעורר בבוקר, לחיצה כאן משלימה את בדיקות הלילה ומייצרת את מופעי היום בלי לשלוח התראות כפולות ובלי לסמן שום משימה מאתמול כ'כישלון'.</li><li><strong>🏋️ ייבא תרגילי בוקר (Self-Manage):</strong> מתחבר לשרת Self-Manage (פורט 8001), מושך את 6 תרגילי היום יחד עם כל שלבי הביצוע והאינפוגרפיקות שלהם לתוך רשימת היום של Compass, וסוגר לצמיתות את משימת הבירור של 11:00.</li><li><strong>💾 גיבוי DB מאומת:</strong> מעתיק Snapshot של מסד הנתונים לתיקיית <code>backups/</code>, מריץ עליו בדיקת תקינות קריפטוגרפית ומבנית (<code>PRAGMA integrity_check</code>) ומוודא שמספר הטבלאות והתבניות תקין וניתן לשחזור מלא.</li><li><strong>🌅 מחזור בוקר:</strong> בונה אוטומטית את תוכנית היום לפי האנרגיה והזמן הפנוי שלך: בוחר צפרדע יומית אחת (<code>FROG-002</code>), משבץ הרגלים פעילים, מוודא שכל 3 תחומי הליבה (מנטלי, פיזי, AI) מיוצגים ביום שלך, מוסיף את האתגר הפעיל ומשימות TaskCommander, ומעביר את התוכנית לאישור חוקי <code>PLAN-001/002</code>.</li><li><strong>▶️ הפעולה הבאה:</strong> מחזיר במצב 'מבצע' משימה אחת ויחידה לביצוע עכשיו (לפי סדר עדיפות: צפרדע -> הרגל -> משימה תפעולית) ומצמיד לה פרוטוקול נשימה של 45 שניות אם ההתנגדות גבוהה.</li><li><strong>🌙 סיכום ערב:</strong> מסכם כמה משימות הושלמו וכמה נותרו פתוחות, בודק לפי החוק <code>FROG-001</code> האם יש לפחות 4 צפרדעים פעילות במאגר למחר (ואם יש פחות מ-4 מבקש ממך להשלים, בלי להמציא צפרדעים בעצמו), ושומר סיכום ערב בזיכרון המערכת.</li><li><strong>🔇 השתק הקראות (Mute) ו-🔊 השמע הקראת ניסיון:</strong> ב-Compass ההקראות הקוליות (TTS בעברית) פועלות רק כשמגיע תזמון של הודעה קולית (קובייה 14) או כשלוחצים על '▶ תצוגה מקדימה / השמע' או על '🔊 השמע הקראת ניסיון' – המערכת אינה מדברת מעצמה ללא טריגר. כשכפתור ה-Mute לחוץ (או במצב שקט/שבת), כל הקראה קולית נחסמת מיידית ב-100%.</li></ul>",
+        example: "לחץ על '🔊 השמע הקראת ניסיון' בסרגל העליון כדי לשמוע את מנוע ה-TTS העברי של הדפדפן מקריא הודעת בדיקה, ואז לחץ על '🔇 השתק הקראות' כדי לראות שההקראה נחסמת מיד."
+      },
       card1: {
-        title: "⚙️ קובייה 1: מדיניות, תפקיד וגבולות אוטונומיה",
+        title: "⚙️ קובייה 1: מדיניות, תפקיד וגבולות אוטונומיה – ואיך מוסיפים לאוטומציה?",
         what: "לוח השליטה המרכזי על 'גבולות הגזרה' שאתה מרשה למערכת להפעיל מולך, והחלפת הכובע שלך בין מתכנן (Planner) למבצע (Executor).",
         why: "<ul><li><strong>למה מפרידים בין מתכנן למבצע?</strong> כדי שבזמן אמת (באמצע היום, כשאתה עייף או נמנע ממשימה) לא תתחיל לשנות חוקים או לבטל הרגלים ('בריחה לתכנון').</li><li><strong>למה צריך 'תקרת דקות יומית' (למשל 180 דק׳)?</strong> כדי למנוע 'תכנון-יתר אופטימי': אם תתכנן בבוקר משימות בהיקף של 4 שעות כשאין לך זמן כזה, החוק <code>PLAN-002</code> יעצור את הפעלת התוכנית האוטומטית, ישמור אותה כ-<code>pending_approval</code> ויבקש ממך לקצץ או לאשר חריגה.</li></ul>",
-        how: "<strong>איזו אוטומציה פעילה כשכתוב 'אוטומציה: פעילה'?</strong><br/>1) שיבוץ אוטומטי של הצפרדע היומית בתוכנית הבוקר לפי אנרגיה וזמן (<code>FROG-002</code>).<br/>2) שנמוך אוטומטי של משימות והרגלים לגרסה המינימלית שלהם בימים שבהם האנרגיה שלך נמוכה (1–2, <code>PLAN-001</code> / <code>HABIT-001</code>).<br/>3) בחירת 'הפעולה הבאה' המדויקת לחלון הזמן הנוכחי.<br/>4) בדיקות שעת סיום (<code>check_time</code>) והתאוששות משינה. (לחיצה על 'השהה אוטומציה' מקפיאה את כולן).",
-        example: "אתה קובע במצב מתכנן: תקרת דקות יומית = 120 דק׳ ותקרת קושי אתגר = רמה 5. אם מחר תוכנית הבוקר תגיע ל-150 דקות, המערכת תעצור ולא תפעיל אותה אוטומטית אלא תבקש את אישורך (PLAN-002)."
+        how: "<strong>איזו אוטומציה פעילה ואיך אני מוסיף לאוטומציה?</strong><br/>האוטומציה במערכת מוזנת אוטומטית מ-4 מקומות שאתה מגדיר:<ul><li><strong>1. הוספת חוק אוטומציה חדש (בקובייה 9):</strong> כל חוק שתבנה ב-'בונה החוקים' בקובייה 9 מצטרף מיד לאוטומציה החיה של המערכת!</li><li><strong>2. הוספת הרגל קבוע (בקובייה 3):</strong> כל הרגל שתוסיף בקובייה 3 ישובץ אוטומטית בכל בוקר ויעבור אוטומטית לגרסת מינימום בימים עם אנרגיה נמוכה.</li><li><strong>3. הוספת פעילות יומית מתוזמנת עם שעת בדיקה (בקובייה 12):</strong> כל פעילות שתוסיף בקובייה 12 תיפתח אוטומטית ב-<code>open_time</code> ותיבדק אוטומטית על ידי מתזמן השרת ב-<code>check_time</code>.</li><li><strong>4. הוספת הודעה או מדיה מתוזמנת (בקובייה 14):</strong> כל תזמון שתוסיף בקובייה 14 יוקרא או יוצג אוטומטית בשעה שקבעת.</li></ul>",
+        example: "רוצה שהמערכת תתזמן אוטומטית כל יום ב-10:00 אימון מתח ותבדוק אותו ב-13:00? הוסף אותו בקובייה 3 (הרגלים) או בקובייה 12 (מסך היום) – והוא נכנס מיד לסבב האוטומציה היומי."
       },
       card2: {
         title: "🐸 קובייה 2: מאגר צפרדעים (Eat That Frog)",
@@ -850,11 +894,11 @@
         example: "הוסף משימה 'שליחת דוח שבועי' ולחץ 'הוסף משימה'. המשימה תתווסף מיד למצבת המשימות של TaskCommander להיום ותשולב במחזור הבוקר."
       },
       card9: {
-        title: "📜 קובייה 9: קטלוג כללים פעילים ובונה חוקים דטרמיניסטיים – האם החוקים אמיתיים ואיך בונים אותם?",
-        what: "<strong>החוקים בקטלוג הם אמיתיים לחלוטין ופעילים בזמן אמת (Live Deterministic Engine) – הם לא טקסט לדוגמא!</strong> כל 37 החוקים בטבלה (17 חוקי הבסיס של Compass ועוד 20 חוקי ההתפתחות הפרואקטיבית FROG-001..004, HABIT-001, MENTAL-001..003, ASSESS-001..002, GROWTH-001..002, CHALLENGE-001..002, PLAN-001..002, AI-001..002, CONTROL-001..002) רצים בפועל בתוך מנוע הכללים (c:\\workspace\\rules_engine\\compass_rules.py).",
-        why: "<ul><li>אם תלחץ על <strong>'השבת'</strong> ליד החוק <code>FROG-001</code> ואז תריץ <strong>'🌙 הרץ סיכום ערב'</strong>, החוק באמת לא יופעל!</li><li>אם תשנה את מספר <strong>העדיפות (Priority)</strong> של חוק בטבלה, מנוע הכללים ישמור מיד <strong>גרסה חדשה (v2)</strong> בטבלת <code>rule_version_history</code> וישנה את סדר הכרעת ההתנגשויות שלו בזמן אמת.</li><li>בלחיצה על <strong>'שחזר ל-v1' (Rollback)</strong>, החוק יחזור למצבו המקורי תוך שמירת גרסה מתועדת (v3).</li></ul>",
-        how: "<strong>איך בנוי כל חוק במנוע הכללים? (4 מרכיבים דטרמיניסטיים):</strong><ul><li><strong>1. אירוע מפעיל (Trigger / event_types):</strong> מתי החוק נבדק? (למשל <code>daily_plan.evaluate</code> כשבונים תוכנית בוקר, או <code>challenge.evaluate</code> כשמדווחים על אתגר).</li><li><strong>2. תנאים (Conditions):</strong> איזה שדה בנתוני האירוע נבדק, באיזה אופרטור (<code>eq</code>, <code>lt</code>, <code>lte</code>, <code>gt</code>, <code>gte</code>, <code>in</code>), ומול איזה ערך? לדוגמה: <code>field: payload.energy_level</code>, <code>operator: lte</code>, <code>value: 2</code>.</li><li><strong>3. עדיפות (Priority):</strong> מספר בין 1 ל-200. כששני חוקים מתאימים לאותו אירוע, החוק עם העדיפות הגבוהה יותר (וחומרת ההחלטה הגבוהה יותר: <code>block</code> &gt; <code>require_approval</code> &gt; <code>allow</code> &gt; <code>recommendation_only</code>) מנצח, וההכרעה נרשמת ביומן ההתנגשויות.</li><li><strong>4. תוצאה (Effect):</strong> מה החוק עושה כשהתנאי מתקיים?<ul><li><code>recommendation_only</code> – מצרף המלצה מותאמת (למשל להציע גרסה מינימלית או פרוטוקול נשימה).</li><li><code>allow</code> – מאשר ביצוע אוטומטי.</li><li><code>require_approval</code> – עוצר את ההפעלה האוטומטית ופותח בקשת אישור למשתמש (בקובייה 10).</li><li><code>block</code> – חוסם פעולה מסוכנת או אסורה (למשל חסימת העלאת עומס גופני בעת כאב <code>CHALLENGE-002</code>).</li></ul></li></ul>",
-        example: "<strong>שתי דרכים ליצור חוק חדש כבר עכשיו:</strong><br/>1) <strong>ישירות מתוך מרכז הבקרה בדפדפן (בתיבה הכהה בראש קובייה 9):</strong> הזן מזהה <code>CUSTOM-001</code>, שם <code>'דרוש אישור לתוכנית בוקר כשהאנרגיה היא 1'</code>, בחר אירוע מפעיל <code>daily_plan.evaluate</code>, שדה <code>payload.energy_level</code>, אופרטור <code>eq</code>, ערך <code>1</code>, ותוצאה <code>require_approval</code>, ולחץ <strong>'בנה ושמור חוק'</strong>. החוק יתווסף מיד לטבלה ויופעל אוטומטית בכל ריצת מחזור בוקר!<br/>2) <strong>בקוד המקור:</strong> בפונקציה <code>proactive_development_rules()</code> בקובץ <code>c:\\workspace\\rules_engine\\compass_rules.py</code> (ומתועד ב-<code>RULES_CATALOG.md</code>)."
+        title: "📜 קובייה 9: קטלוג כללים ובונה חוקים – מהם כל שדות התנאי, איך מוסיפים אירוע מפעיל ואיך מוסיפים תוצאה?",
+        what: "<strong>החוקים בקטלוג הם אמיתיים לחלוטין ופעילים בזמן אמת (Live Deterministic Engine)!</strong> כל 37 החוקים בטבלה רצים בפועל בתוך מנוע הכללים (c:\\workspace\\rules_engine\\compass_rules.py), ובונה החוקים בראש הקובייה מאפשר לך להוסיף או לעדכן חוקים עם השלמה אוטומטית.",
+        why: "כדי שתוכל לשלוט בלוגיקה של המערכת בלי לכתוב קוד: לבחור או להקליד כל אירוע מפעיל, לבחור מתוך רשימת כל שדות התנאי הקיימים במערכת, ולהגדיר בדיוק איזו תוצאה וקוד הנחיה יופעלו.",
+        how: "<strong>מדריך מלא לשאלותיך על בניית חוק:</strong><ul><li><strong>1. מה הם כל שדות התנאי האפשריים?</strong> (כשאתה לוחץ על התיבה 'שדה תנאי' בראש קובייה 9 נפתחת כעת רשימה לבחירה או להקלדה חופשית):<ul><li><code>payload.energy_level</code> – רמת אנרגיה יומית (1 עד 5).</li><li><code>payload.available_minutes</code> – דקות פנויות שיש לך היום.</li><li><code>payload.planned_minutes</code> – סך הדקות של המשימות בתוכנית הבוקר.</li><li><code>payload.core_domains_scheduled_count</code> – כמה מתוך 3 תחומי הליבה שובצו היום (0–3).</li><li><code>payload.active_frogs_count</code> – כמות הצפרדעים הפעילות במאגר בערב.</li><li><code>payload.frog_type</code> – סוג הצפרדע (<code>one_time</code> או <code>ongoing</code>).</li><li><code>payload.resistance_level</code> – רמת ההתנגדות הרגשית למשימה/הרגל (1–10).</li><li><code>payload.pain_or_limitation</code> – האם דווח כאב גופני באתגר (<code>true</code> / <code>false</code>).</li><li><code>payload.consecutive_completions</code> – מספר השלמות רצופות באתגר (למשל 3 להעלאת רמה).</li><li><code>payload.event_count</code> – מספר האירועים המנטליים שתועדו (למשל פחות מ-5 חוסם מגמה).</li><li><code>payload.max_days_since_core_activity</code> – מספר הימים שחלפו מאז שתרגלת תחום ליבה.</li><li><code>payload.ai_weekly_activity_count</code> – מספר פעילויות ה-AI שביצעת השבוע.</li><li><code>payload.is_material_change</code> – האם מדובר בשינוי מדיניות מהותי (<code>true</code> / <code>false</code>).</li></ul></li><li><strong>2. איך מוסיפים או משנים אירוע מפעיל (Trigger)?</strong> שדה ה-'אירוע מפעיל' בראש קובייה 9 הוא כעת <strong>תיבה משולבת (בחר מהרשימה או הקלד כל אירוע חדש)</strong>! כדי לשנות אירוע מפעיל לחוק קיים – הזן את המזהה שלו (למשל <code>PLAN-001</code>) בבונה החוקים, בחר או הקלד את האירוע החדש ולחץ 'בנה ושמור חוק' (זה ייצור גרסה חדשה v2 לאותו חוק).</li><li><strong>3. איך מוסיפים תוצאה (Effect)?</strong> בוחרים בתיבת 'תוצאה' את סוג ההכרעה (<code>recommendation_only</code> להמלצה, <code>allow</code> לאישור אוטומטי, <code>require_approval</code> לבקשת אישור בקובייה 10, או <code>block</code> לחסימה מוחלטת) ובתיבה שלידה ('קוד תוצאה/הנחיה') רושמים את קוד הפעולה הרצוי (למשל <code>USE_MINIMUM_VIABLE_VERSION</code> או <code>ATTACH_6_STEP_PREP_PROTOCOL</code>).</li></ul>",
+        example: "לחיצה על שדה התנאי בראש קובייה 9 תפתח לך מיד את כל 13 השדות לבחירה בלחיצה אחת."
       },
       card10: {
         title: "⚖️ קובייה 10: החלטות אחרונות ואישורים ממתינים",
@@ -871,11 +915,11 @@
         example: "לחץ על 'הסבר' ליד החלטת daily_plan.evaluate או לחץ על 'גרסאות' ליד החוק FROG-001 בטבלת החוקים – והפירוט המלא יוצג מיד בחלונית זו."
       },
       card12: {
-        title: "📅 קובייה 12: מסך היום המאוחד (פרוסות 1A ו-1B באפיון המאוחד גרסה 6)",
-        what: "ניהול משימות היום עם הפרדה מלאה בין מועד פתיחה והצגה (למשל 06:00), מועד ביצוע מועדף (09:10) ומועד בדיקה (10:00 או 18:00), מספור קולי יציב (#1, #2, #3), כפתור 'נתקעתי', ומשימת הבירור היומית ב-11:00 של Self Management.",
-        why: "כדי שלא תקבל התראות מיותרות אם כבר השלמת פעילות לפני מועד הבדיקה, וכדי שהיעדר דיווח ייחשב 'אין מידע' (unknown) וייצור שאלת בירור עדינה במקום לסמן כישלון אוטומטי.",
-        how: "<ul><li><strong>State Machine כפול:</strong> מפריד בין מצב התזמון (מתוכנן, הוצג, בחלון ביצוע, הגיע מועד בדיקה, נסגר) לבין תוצאת הביצוע (אין מידע, הושלם, חלקי, לא בוצע, נדחה, חריג מאושר).</li><li><strong>אירועי ביצוע Append-Only:</strong> כל סימון או ביטול (Undo) נשמר כאירוע מקושר בטבלת <code>v6_execution_events</code> עם הגנת התנגשויות (<code>entity_version</code>) בסנכרון בין טלפון למחשב.</li><li><strong>כפתור 'נתקעתי':</strong> מציע צעד ראשון של 2 דקות או גרסת מינימום בלי לשנות את התוכנית אוטומטית.</li></ul>",
-        example: "צור פעילות 'כתיבה חופשית על נייר' עם פתיחה 06:00, מועדף 09:10 ובדיקה 10:00. לחץ על 'בדיקת כלל (18:00)' כשהסטטוס הוא 'אין מידע' – ותראה שהמערכת שואלת שאלת בירור ולא קובעת כישלון!"
+        title: "📅 קובייה 12 ומסך היום: מתי משימה עוברת ל'דורש בירור או השלמה', איפה התמונות של תרגילי הבוקר ומהו כפתור 'נתקעתי'?",
+        what: "ניהול משימות היום עם הפרדה מלאה בין מועד פתיחה (<code>open_time</code>), מועד ביצוע מועדף (<code>preferred_time</code>), סיום חלון (<code>window_end_time</code>) ומועד בדיקה (<code>check_time</code>), מספור קולי יציב (#1..N), כפתור 'נתקעתי', וייבוא מלא של תרגילי הבוקר כולל טקסט ואינפוגרפיקות.",
+        why: "כדי שלא תקבל התראות מיותרות אם כבר השלמת פעילות לפני מועד הבדיקה, וכדי שהיעדר דיווח לעולם לא ייחשב כישלון אלא יעבור אוטומטית לקטגוריית 'דורש בירור או השלמה'.",
+        how: "<ul><li><strong>מי ממלא את השדה '🟡 דורש בירור או השלמה' (Needs Clarification / Completion)?</strong> <strong>המערכת ממלאת אותו אוטומטית!</strong> אתה לא צריך להזין לשם כלום. ברגע שהשעה הנוכחית עוברת את שעת הבדיקה (<code>check_time</code>) של משימה והסטטוס שלה עדיין <code>unknown</code> (טרם דווחה) או <code>partial</code>/<code>not_done</code> – מתזמן השרת מעביר אותה אוטומטית מ-'עכשיו' אל 'דורש בירור או השלמה' ושואל בעדינות אם ביצעת אותה או אם תרצה חלון השלמה קצר הערב.</li><li><strong>למה קודם רק לתרגיל בוקר אחד הייתה תמונה?</strong> במסד הנתונים המקורי של פרויקט <code>Self-Manage</code> הוגדרה תמונה רק ל-14 תרגילים (בעיקר צ׳י קונג ושכיבות סמיכה על קיר), ולשאר 5 התרגילים שנבחרו היום לא הייתה תמונה ב-Self-Manage. <strong>תיקנתי זאת עבורך:</strong> יצרתי והצמדתי אינפוגרפיקות SVG מודרכות בעברית לכל אחד מ-6 תרגילי הבוקר (Teach-Back, Single-Task Sprint, Breath + Slow Walk, שכיבות סמיכה על קיר, Hip Openers, ו-3 נקודות תודה) – כך שלכל תרגיל בוקר יש כעת גם הוראות מלאות וגם תמונה/אינפוגרפיקה!</li><li><strong>מהו כפתור 'נתקעתי' (Stuck)?</strong> מופיע ליד כל משימה ברשימת היום וגם בכרטיס הקשב למטה. לחיצה עליו לא משנה את התוכנית אוטומטית, אלא נותנת לך מיד 3 דרכי מוצא: 1) צעד ראשון זעיר של 2 דקות בלבד בלי מחויבות להמשיך, 2) הגרסה המינימלית של המשימה, 3) דחייה/חריג מאושר ללא אשמה.</li></ul>",
+        example: "לחץ על '📖 הצג הוראות תרגיל ותמונות' בכל אחד מתרגילי הבוקר #4 עד #9 ותראה שלכולם יש כעת גם טקסט מלא וגם אינפוגרפיקה חזותית."
       },
       card13: {
         title: "🎤 קובייה 13: דיווח קולי בעברית עם אישור מקדים ופתרון עמימות (פרוסה 1C)",
@@ -885,11 +929,11 @@
         example: "הקלד או דקלם: 'ביצעתי משימה 1' ולחץ 'נתח פקודה'. תופיע תיבת אישור עם שם המשימה המדויק וכפתור 'אשר שמירה קולית ✓'. ניתן גם לומר 'בטל דיווח' כדי לבטל את הסימון האחרון."
       },
       card14: {
-        title: "🎬 קובייה 14: מולטימדיה כתחליף מלא לטקסט וטופס הודעות והקראות מתוזמנות (פרוסה 1D)",
+        title: "🎬 קובייה 14: מולטימדיה, הודעות מתוזמנות והשתקת הקראות (למה איני שומע הקראות כרגע?)",
         what: "ניהול בלוקי מדיה (סרטון, אינפוגרפיקה, תמונה, אודיו מוכן, שאלה) שיכולים להחליף טקסט לחלוטין, וטופס תזמון הודעות והקראות TTS בעברית עם תצוגה מקדימה וכפתור השתקה מיידי (Global Mute).",
-        why: "אינפוגרפיקת בוקר ב-07:00, סרטון תרגול ב-09:00 או אודיו מוקלט לתרגול מנטלי ב-12:00 יעילים לעיתים הרבה יותר מעוד שורת טקסט. מנגד, כשאתה בפגישה או במצב שקט, אסור למערכת להשמיע קול אוטומטית.",
-        how: "השרת מאמת את סוג הקובץ והגודל בפועל (<code>v6_media_assets</code>) ושומר מזהה גרסת תוכן (<code>content_version_id</code>). בעת תצוגה מקדימה או הפעלה של הודעה מתוזמנת, המערכת בודקת את כפתור ההשתקה (<code>global_mute_tts</code>) ואת ה-<code>Context Mode</code>: במצב שקט או שבת, הקראת TTS נחסמת אוטומטית וההודעה מוצגת חזותית בלבד.",
-        example: "בחר 'אינפוגרפיקה (image/png)' או 'סרטון תרגול (video/mp4)' אפילו בלי להזין טקסט להקראה, קבע שעה 07:00 ולחץ 'שמור תזמון'. לחץ על 'תצוגה מקדימה / השמע' כדי לבדוק את ההתנהגות במצב רגיל מול מצב מושתק."
+        why: "<strong>למה אינך שומע הקראות מעצמן כרגע?</strong> מכיוון שלפי האפיון המאוחד, אסור למערכת להתחיל לדבר בקול רם מעצמה באמצע היום בלי טריגר או כשמצב ההשתקה פעיל! הקראה קולית מושמעת אך ורק כשאתה לוחץ על <strong>'▶ תצוגה מקדימה / השמע'</strong> ליד הודעה מתוזמנת בקובייה 14, או כשאתה לוחץ על <strong>'🔊 השמע הקראת ניסיון'</strong> בסרגל העליון – ובתנאי שכפתור ה-Mute אינו במצב 'מושתק'.",
+        how: "<ul><li><strong>איך לשמוע הקראה עכשיו?</strong> 1) ודא שהכפתור בסרגל העליון אומר <code>🔊 השתק הקראות</code> (ולא <code>🔇 הקראות מושתקות</code>). 2) לחץ על <strong>'🔊 השמע הקראת ניסיון'</strong> בסרגל העליון, או לחץ על <strong>'▶ תצוגה מקדימה / השמע'</strong> ליד ההודעה 'עצירה ונשימה מנטלית 12:00' בקובייה 14 – ותשמע מיד את ההקראה בעברית!</li><li><strong>מה עושה כפתור 'השתק הקראות (Global Mute)'?</strong> עוצר מיידית כל דיבור פעיל בדפדפן (<code>speechSynthesis.cancel()</code>) ומונע מכל הודעה מתוזמנת להשמיע קול עד שתבטל את ההשתקה.</li></ul>",
+        example: "לחץ על '▶ תצוגה מקדימה / השמע' בקובייה 14 כשה-Mute כבוי כדי לשמוע את ההקראה הקולית בעברית."
       },
       card15: {
         title: "💡 קובייה 15: Inbox מהיר (כפתור 'רעיון') ו-Progressive Onboarding בניהול Compass (פרוסה 1E)",
@@ -913,11 +957,11 @@
         example: "דרג פיזית=2, ריכוז=5, מוטיבציה=4, עומס רגשי=2 ולחץ 'שמור אנרגיה ותועלת' – המערכת תמליץ מיד להתמקד במשימת AI/כתיבה ולהשתמש בגרסת מינימום לפעילות הגופנית."
       },
       card18: {
-        title: "👁️ קובייה 18: דיווח קשב עצמי בלחיצה אחת, כפתור עצירת מעקב ומתזמן השרת (סעיפים 15 ו-16)",
-        what: "סרגל דיווח קשב עצמי אופציונלי בלחיצה אחת ('💻 עבדתי', '🌐 גלשתי', '☕ הפסקה') עם כפתור עצירת מעקב מיידי, ולוח הפעלה למתזמן השרת המתמשך (Server Scheduler).",
-        why: "לפי סעיף 15 באפיון המאוחד, עוד לפני כל ניטור אוטומטי עתידי, הגרסה השימושית מציעה דיווח עצמי אופציונלי בלחיצה אחת בלי להניח שגלישה היא הסחת דעת, בלי להסיק רצף בין דיווחים, ועם איסור מוחלט כברירת מחדל על איסוף תוכן גלישה או צילומי מסך.",
-        how: "<ul><li><strong>כפתור עצירת מעקב מיידי:</strong> לחיצה על '⏹ עצור מעקב מיידית' חוסמת מיידית כל רישום קשב עד שתחדש אותו.</li><li><strong>מתזמן השרת (Server Scheduler):</strong> סורק את כל פעילויות היום שהגיע מועד הבדיקה שלהן (<code>check_time</code>), מריץ התאוששות משינה אם טרם רצה היום, ולא שולח שום התראה כפולה על פעילות שכבר הושלמה.</li></ul>",
-        example: "לחץ על '💻 עבדתי' או על '⏱ הרץ סריקת מתזמן שרת' לשעה 18:00 כדי לראות את כל בדיקות הכללים היומיות רצות יחד."
+        title: "👁️ קובייה 18: דיווח קשב בלחיצה אחת – מתי מקליקים, איך מדווחים על לפני שעתיים, ומהו כפתור 'נתקעתי'?",
+        what: "סרגל דיווח קשב עצמי אופציונלי בלחיצה אחת ('💻 עבדתי', '🌐 גלשתי', '☕ הפסקה') עם אפשרות לדיווח בדיעבד (לפני חצי שעה / שעה / שעתיים / 3 שעות), כפתור '🧱 נתקעתי עכשיו', כפתור עצירת מעקב מיידי, ולוח הפעלה למתזמן השרת.",
+        why: "לפי סעיף 15 באפיון המאוחד, המערכת אינה מרגלת אחריך (איסור מוחלט על איסוף היסטוריית גלישה או צילומי מסך). לכן הדיווח הוא נקודתי ווולונטרי לחלוטין על ידך, בלי להניח שגלישה היא בהכרח הסחת דעת ובלי להסיק רצף אוטומטי בין שני דיווחים.",
+        how: "<ul><li><strong>מתי אני מקליק?</strong> מתי שנוח לך לתעד נקודתית במה עסקת כרגע (למשל סיימת בלוק עבודה, או תפסת את עצמך בגלישה או בהפסקה).</li><li><strong>ואיך אפשר לדווח על לפני שעתיים?</strong> הוספתי תיבת בחירה <strong>'על מתי הדיווח?'</strong> ממש מעל הכפתורים! בחר בה <strong>'לפני שעתיים (120 דק׳)'</strong> (או לפני חצי שעה / שעה / 3 שעות), הוסף הערת הקשר אופציונלית, ולחץ על '💻 עבדתי' / '🌐 גלשתי' / '☕ הפסקה' – והדיווח יירשם עם חותמת הזמן המדויקת של לפני שעתיים!</li><li><strong>איפה כפתור 'נתקעתי' ומה משמעותו?</strong> הוספתי את הכפתור הכתום <strong>'🧱 נתקעתי עכשיו'</strong> גם בתוך קובייה זו (בנוסף לכפתור 'נתקעתי' שליד כל משימה ברשימת היום). משמעותו: כשאתה מרגיש קושי להתחיל או קיפאון מול משימה, לחיצה עליו מפרקת לך את המשימה הקרובה ל-<strong>צעד ראשון של 2 דקות בלבד</strong> או מציעה לעבור לגרסת המינימום שלה, בלי לשנות לך את תוכנית היום אוטומטית ובלי שיפוטיות.</li></ul>",
+        example: "בחר בתיבה 'לפני שעתיים (120 דק׳)', כתוב בהערה 'פיתוח סוכני AI' ולחץ על '💻 עבדתי' – הדיווח יתועד רטרואקטיבית ללפני שעתיים."
       }
     };
 
@@ -1601,7 +1645,8 @@
           field: document.getElementById('rule-field').value,
           operator: document.getElementById('rule-op').value,
           value: parsedVal,
-          effect_type: document.getElementById('rule-eff').value
+          effect_type: document.getElementById('rule-eff').value,
+          reason_code: document.getElementById('rule-reason')?.value.trim() || 'CUSTOM_RULE_MATCHED'
         })
       });
       const data = await res.json();
@@ -2085,14 +2130,47 @@
     }
 
     async function reportV6Attention(category) {
+      const minutes_ago = parseInt(document.getElementById('attn-offset')?.value || '0', 10);
+      const context_note = document.getElementById('attn-note')?.value.trim() || null;
       const res = await fetch('/api/v6/attention/report', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({user_id: 'moshe', category})
+        body: JSON.stringify({user_id: 'moshe', category, minutes_ago, context_note})
       });
       const data = await res.json();
-      showOutput(`👁️ דיווח קשב עצמי (${category}):`, data);
+      if (document.getElementById('attn-note')) document.getElementById('attn-note').value = '';
+      showOutput(`👁️ דיווח קשב עצמי (${category}, לפני ${minutes_ago} דקות):`, data);
       await loadOverview();
+    }
+
+    async function showGeneralStuckHelp() {
+      const all = currentState?.v6_today_screen?.all_instances || [];
+      const firstOpen = all.find(i => i.execution_outcome !== 'completed') || all[0];
+      if (firstOpen) {
+        await showV6Stuck(firstOpen.instance_id);
+      } else {
+        showOutput('🛟 סיוע "נתקעתי":', {
+          tip_1: 'צעד ראשון של 2 דקות: קח נשימה ל-45 שניות ובצע רק את הצעד הראשון במשך 120 שניות בלי מחויבות להמשיך.',
+          tip_2: 'עבור לגרסה המינימלית של ההרגל להיום (HABIT-001).'
+        });
+      }
+    }
+
+    function testTtsSpeak() {
+      const curMute = currentState?.v6_today_screen?.context_mode?.global_mute_tts || false;
+      if (curMute) {
+        alert('ההקראות מושתקות כרגע (Mute). לחץ על כפתור ההשתקה ליד כדי לבטל השתקה ולשמוע הקראה.');
+        return;
+      }
+      if (!('speechSynthesis' in window)) {
+        alert('הדפדפן אינו תומך ב-speechSynthesis.');
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance('שלום משה, מערכת ההקראה הקולית של קומפאס פעילה ומוכנה.');
+      utter.lang = 'he-IL';
+      window.speechSynthesis.speak(utter);
+      showOutput('🔊 הקראת ניסיון בעברית הופעלה בדפדפן (TTS):', {text: utter.text, lang: 'he-IL', muted: false});
     }
 
     async function toggleV6AttentionPause() {

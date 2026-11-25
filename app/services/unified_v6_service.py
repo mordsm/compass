@@ -1816,7 +1816,8 @@ class UnifiedV6Service:
                             c_blocks.append({"block_type": "measurement", "title": "מדד ביצוע", "text": str(ex["measurement"])})
                         if ex.get("common_mistakes") and isinstance(ex["common_mistakes"], list):
                             c_blocks.append({"block_type": "mistakes", "title": "טעויות נפוצות", "steps": [str(m) for m in ex["common_mistakes"]]})
-                        for m in (ex.get("media") or []):
+                        media_list = list(ex.get("media") or [])
+                        for m in media_list:
                             m_url = str(m.get("url") or "")
                             if m_url.startswith("/"):
                                 m_url = f"{sm_base_url}{m_url}"
@@ -1825,6 +1826,32 @@ class UnifiedV6Service:
                                     "block_type": str(m.get("type") or "image"),
                                     "title": str(m.get("title") or raw_title),
                                     "url": m_url,
+                                }
+                            )
+                        if not media_list:
+                            slug_key = str(ex.get("slug") or "").strip().lower()
+                            fallback_svg_map = {
+                                "teach_back": "/control-center/exercises/teach_back.svg",
+                                "single_task_10": "/control-center/exercises/single_task_10.svg",
+                                "breath_walk_combo": "/control-center/exercises/breath_walk_combo.svg",
+                                "hip_openers": "/control-center/exercises/hip_openers.svg",
+                                "gratitude_3": "/control-center/exercises/gratitude_3.svg",
+                            }
+                            fallback_url = fallback_svg_map.get(
+                                slug_key,
+                                "/control-center/exercises/gratitude_3.svg"
+                                if compass_goal == "mental"
+                                else (
+                                    "/control-center/exercises/teach_back.svg"
+                                    if compass_goal == "ai_professional"
+                                    else "/control-center/exercises/hip_openers.svg"
+                                ),
+                            )
+                            c_blocks.append(
+                                {
+                                    "block_type": "infographic",
+                                    "title": f"אינפוגרפיקה מודרכת — {raw_title}",
+                                    "url": fallback_url,
                                 }
                             )
 
@@ -2518,12 +2545,15 @@ class UnifiedV6Service:
         user_id: str = "moshe",
         category: str,
         context_note: str | None = None,
+        occurred_at: str | None = None,
+        minutes_ago: int | None = None,
     ) -> dict[str, Any]:
         """
         Section 15:
         Optional one-click self-report: 'worked' (עבדתי) | 'browsed' (גלשתי) | 'break' (הפסקה).
         - Respects immediate stop button (`tracking_paused`).
         - Does not interpret browsing as distraction without context.
+        - Supports retroactive reporting (e.g. `minutes_ago=120` for 2 hours ago, or explicit `occurred_at`).
         """
         state = self.get_attention_state(user_id=user_id)
         if state["tracking_paused"]:
@@ -2537,7 +2567,12 @@ class UnifiedV6Service:
             raise ValueError("category must be 'worked', 'browsed', or 'break'")
 
         report_id = resource_id("v6_attn")
-        now = utc_now()
+        if occurred_at:
+            ts = occurred_at
+        elif minutes_ago and int(minutes_ago) > 0:
+            ts = (datetime.now(timezone.utc) - timedelta(minutes=int(minutes_ago))).isoformat()
+        else:
+            ts = utc_now()
         with db() as conn:
             conn.execute(
                 """
@@ -2545,13 +2580,15 @@ class UnifiedV6Service:
                 (report_id, user_id, category, context_note, occurred_at)
                 values (?, ?, ?, ?, ?)
                 """,
-                (report_id, user_id, category, context_note, now),
+                (report_id, user_id, category, context_note, ts),
             )
         updated = self.get_attention_state(user_id=user_id)
         return {
             "success": True,
             "report_id": report_id,
             "category": category,
+            "occurred_at": ts,
+            "minutes_ago": minutes_ago or 0,
             "assumed_distraction": False,
             "inferred_continuous_activity": False,
             "attention_state": updated,

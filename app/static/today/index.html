@@ -100,6 +100,7 @@
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
       <button id="mute-btn" class="secondary" onclick="toggleMute()">🔊 השתק הקראות</button>
+      <button class="secondary" onclick="testTtsToday()">🔊 השמע הקראת ניסיון</button>
       <a href="/control-center/" style="text-decoration:none;"><button class="secondary">🧭 מרכז הבקרה המלא (מתכנן / 18 קוביות)</button></a>
     </div>
   </header>
@@ -128,7 +129,10 @@
   </div>
 
   <div class="card">
-    <h2>🟡 דורש בירור או השלמה (Needs Clarification / Completion)</h2>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+      <h2 style="margin:0;">🟡 דורש בירור או השלמה (המערכת מעבירה לכאן אוטומטית משימות שעבר מועד הבדיקה שלהן ללא דיווח)</h2>
+      <button class="secondary" onclick="runSchedulerNow()">⏱ בדוק והעבר משימות שהגיע מועד הבדיקה שלהן</button>
+    </div>
     <div id="sec-clarify">טוען...</div>
   </div>
 
@@ -144,13 +148,26 @@
 
   <!-- 4. One-Click Attention & Stuck Output -->
   <div class="card">
-    <h2>👁️ דיווח קשב בלחיצה אחת וסיוע "נתקעתי"</h2>
-    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+    <h2>👁️ דיווח קשב בלחיצה אחת (כולל דיווח בדיעבד על לפני שעה/שעתיים) וסיוע "נתקעתי"</h2>
+    <div style="font-size:0.82rem; color:var(--muted); margin-bottom:8px;">
+      <strong>מתי מקליקים?</strong> וולונטרית כשבא לך לתעד במה עסקת (המערכת לא מרגלת אחריך ולא מניחה רצף). שכחת לדווח בזמן אמת? בחר בתיבה למטה <strong>"לפני שעתיים"</strong> או שעה מדויקת ולחץ על הכפתור המתאים. אם אתה מרגיש תקוע מול משימה – לחץ על <strong>"🧱 נתקעתי עכשיו"</strong> לקבלת פירוק מיידי לצעד ראשון של 2 דקות.
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+      <label style="font-size:0.85rem;">על מתי הדיווח?</label>
+      <select id="attn-offset" style="background:#0b1120; color:var(--text); border:1px solid var(--border); padding:7px; border-radius:8px;">
+        <option value="0">עכשיו (בזמן אמת)</option>
+        <option value="30">לפני חצי שעה (30 דק׳)</option>
+        <option value="60">לפני שעה (60 דק׳)</option>
+        <option value="120">לפני שעתיים (120 דק׳)</option>
+        <option value="180">לפני 3 שעות (180 דק׳)</option>
+      </select>
+      <input id="attn-note" type="text" placeholder="הערת הקשר אופציונלית (למשל: מחקר AI)" style="width:200px;" />
       <button class="ok" onclick="reportAttn('worked')">💻 עבדתי</button>
       <button class="secondary" onclick="reportAttn('browsed')">🌐 גלשתי</button>
       <button class="secondary" onclick="reportAttn('break')">☕ הפסקה</button>
+      <button class="warn" onclick="generalStuckHelp()">🧱 נתקעתי עכשיו (סיוע לפעולה הבאה)</button>
     </div>
-    <div id="status-banner" style="font-size:0.88rem; color:var(--accent);"></div>
+    <div id="status-banner" style="font-size:0.88rem; color:var(--accent); white-space:pre-line;"></div>
   </div>
 
   <script>
@@ -320,13 +337,60 @@
     }
 
     async function reportAttn(category) {
+      const minutes_ago = parseInt(document.getElementById('attn-offset')?.value || '0', 10);
+      const context_note = document.getElementById('attn-note')?.value.trim() || null;
       const res = await fetch('/api/v6/attention/report', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({user_id: 'moshe', category})
+        body: JSON.stringify({user_id: 'moshe', category, minutes_ago, context_note})
       });
       const data = await res.json();
-      document.getElementById('status-banner').innerText = data.success ? `נרשם דיווח קשב: ${category}` : data.message_he;
+      const whenTxt = minutes_ago > 0 ? ` (תועד רטרואקטיבית ללפני ${minutes_ago} דקות)` : ' (תועד לזמן אמת)';
+      document.getElementById('status-banner').innerText = data.success
+        ? `✅ נרשם דיווח קשב: ${category}${whenTxt}${context_note ? ' | הערה: ' + context_note : ''}`
+        : data.message_he;
+      if (document.getElementById('attn-note')) document.getElementById('attn-note').value = '';
+    }
+
+    async function generalStuckHelp() {
+      const all = todayState?.all_instances || [];
+      const firstOpen = all.find(i => i.execution_outcome !== 'completed') || all[0];
+      if (firstOpen) {
+        await stuckHelp(firstOpen.instance_id);
+      } else {
+        document.getElementById('status-banner').innerText = '🛟 סיוע "נתקעתי":\n• צעד ראשון של 2 דקות: קח נשימה אחת ל-45 שניות ובצע רק את הפעולה הראשונה למשך 120 שניות בלי מחויבות להמשיך.\n• או עבור לגרסה המינימלית של ההרגל להיום.';
+      }
+    }
+
+    async function runSchedulerNow() {
+      const nowStr = new Date().toTimeString().slice(0, 5);
+      await fetch('/api/v6/scheduler/tick', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: 'moshe', current_time: nowStr})
+      });
+      const res = await fetch(`/api/v6/today-screen?user_id=moshe&current_time=${encodeURIComponent(nowStr)}`);
+      todayState = await res.json();
+      renderList('sec-now', todayState.sections?.now || []);
+      renderList('sec-clarify', todayState.sections?.needs_clarification_or_completion || []);
+      renderList('sec-later', todayState.sections?.later || []);
+      renderList('sec-done', todayState.sections?.completed || []);
+      document.getElementById('status-banner').innerText = `⏱ בוצעה בדיקת מועדי סיום לשעה ${nowStr} – משימות שעבר מועד הבדיקה שלהן ללא דיווח הועברו אל "דורש בירור או השלמה".`;
+    }
+
+    function testTtsToday() {
+      if (todayState?.context_mode?.global_mute_tts) {
+        alert('ההקראות מושתקות כרגע (Mute). לחץ על "🔇 הקראות מושתקות (בטל)" כדי לשמוע הקראה.');
+        return;
+      }
+      if (!('speechSynthesis' in window)) {
+        alert('הדפדפן אינו תומך בהקראת TTS.');
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance('שלום משה, מערכת ההקראה של קומפאס פעילה ומוכנה.');
+      u.lang = 'he-IL';
+      window.speechSynthesis.speak(u);
     }
 
     loadToday();

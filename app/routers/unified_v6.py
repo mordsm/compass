@@ -166,6 +166,8 @@ class LogAttentionSelfReportRequest(BaseModel):
     user_id: str = "moshe"
     category: str = Field(default="worked", description="worked | browsed | break")
     context_note: str | None = None
+    occurred_at: str | None = None
+    minutes_ago: int | None = None
 
 
 class ToggleAttentionPauseRequest(BaseModel):
@@ -410,6 +412,8 @@ def log_attention_self_report(request: LogAttentionSelfReportRequest) -> dict[st
             user_id=request.user_id,
             category=request.category,
             context_note=request.context_note,
+            occurred_at=request.occurred_at,
+            minutes_ago=request.minutes_ago,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
